@@ -1,0 +1,13 @@
+{
+  "name": "@beyond-js/ipc",
+  "author": "BeyondJS",
+  "email": "hello@beyondjs.com",
+  "version": "0.0.1",
+  "license": "MIT",
+  "repository": "https://github.com/beyondjs/ipc",
+  "exports": {
+    ".": "./index.js"
+  },
+  "dependencies": {
+  }
+}
