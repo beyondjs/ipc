@@ -1,4 +1,4 @@
-const PendingPromise = require('beyond/utils/pending-promise');
+const PendingPromise = require('@beyond-js/pending-promise');
 
 module.exports = class {
     // The process on which the actions will be executed
