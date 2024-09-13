@@ -19,7 +19,11 @@ jobs:
                   node-version: '18'
                   registry-url: 'https://registry.npmjs.org'
 
+            - name: Change to src directory
+              run: cd src
+
             - name: Publish to NPM
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
               run: npm publish --access public
+              working-directory: ./src
