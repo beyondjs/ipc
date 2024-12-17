@@ -8,5 +8,7 @@
 	"exports": {
 		".": "./index.js"
 	},
-	"dependencies": {}
+	"dependencies": {
+		"uuid": "^11.0.3"
+	}
 }
