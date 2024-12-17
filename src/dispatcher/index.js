@@ -1,8 +1,10 @@
 const PendingPromise = require('@beyond-js/pending-promise');
+const uuid = require('uuid');
 
 module.exports = class {
 	// The process on which the actions will be executed
 	#process;
+	#instance = uuid();
 
 	constructor(fork) {
 		// If it is the main process, then it is required the fork parameter
@@ -38,10 +40,8 @@ module.exports = class {
 
 		const rq = {
 			type: 'ipc.request',
-			target: target,
-			id: id,
-			action: action,
-			params: params,
+			dispatcher: { instance: this.#instance },
+			request: { target, id, action, params }
 		};
 
 		this.#pendings.set(id, promise);
@@ -54,18 +54,19 @@ module.exports = class {
 	 * Response reception handler
 	 */
 	#onmessage = message => {
-		if (typeof message !== 'object' || message.type !== 'ipc.response') return;
-		if (!this.#pendings.has(message.id)) {
+		if (typeof message !== 'object' || message.request?.type !== 'ipc.response') return;
+		if (this.#instance !== message.dispatcher?.instance) return;
+		if (!this.#pendings.has(message.request.id)) {
 			console.error('Response message id is invalid', message);
 			return;
 		}
 
-		const pending = this.#pendings.get(message.id);
+		const pending = this.#pendings.get(message.request.id);
 		const { response, error } = message;
 		error && console.error(error instanceof Error || error.stack ? error.stack : error);
 		error ? pending.reject(new this.#IPCError(error)) : pending.resolve(response);
 
-		this.#pendings.delete(message.id);
+		this.#pendings.delete(message.request.id);
 	};
 
 	destroy() {
