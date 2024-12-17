@@ -1,6 +1,7 @@
+import type { EventListenerType, IEventEmit } from '../../interfaces';
 import Sources from './sources';
 
-export type ListenersType = Map<string, IListener[]>;
+export type ListenersType = Map<string, Set<EventListenerType>>;
 
 export default class {
 	// Sources of events are the events received from the forked processes
@@ -11,12 +12,12 @@ export default class {
 		this.#sources = new Sources(this.#listeners);
 	}
 
-	on(source: string, event: string, listener: IListener) {
+	on(source: string, event: string, listener: EventListenerType) {
 		if (typeof source !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
 		}
 
-		let listeners;
+		let listeners: Set<EventListenerType>;
 		const key = `${source}|${event}`;
 		if (this.#listeners.has(key)) {
 			listeners = this.#listeners.get(key);
@@ -27,7 +28,7 @@ export default class {
 		listeners.add(listener);
 	}
 
-	off(source: string, event: string, listener: IListener) {
+	off(source: string, event: string, listener: EventListenerType) {
 		const key = `${source}|${event}`;
 
 		let listeners;
@@ -42,11 +43,11 @@ export default class {
 			return;
 		}
 
-		listeners.delete(key, listener);
+		listeners.delete(listener);
 	}
 
 	// To emit events from the main to the forked children and even to the main process
-	emit(event: string, message) {
+	emit(event: string, message: IEventEmit) {
 		this.#sources.emit('main', event, message);
 	}
 

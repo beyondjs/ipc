@@ -1,11 +1,5 @@
 import type Sources from '.';
-
-interface IEventDispatchMessage {
-	type: 'ipc.event.dispatch';
-	source: string;
-	event: string;
-	message: any;
-}
+import type { IAddEventListener, IEventDispatch, IEventEmit, IRemoveEventListener } from '../../../interfaces';
 
 export default class {
 	#sources: Sources;
@@ -35,13 +29,13 @@ export default class {
 		if (!this.#listeners.has(key)) return;
 
 		try {
-			this.#fork.send(<IEventDispatchMessage>{ type: 'ipc.event.dispatch', source: sourceName, event, message });
+			this.#fork.send(<IEventDispatch>{ type: 'ipc.event.dispatch', source: sourceName, event, message });
 		} catch (exc) {
 			console.warn(`Error emitting event ${key} to fork process with name "${this.#name}"`, exc.message);
 		}
 	}
 
-	#onmessage = message => {
+	#onmessage = (message: IAddEventListener | IRemoveEventListener | IEventEmit) => {
 		if (typeof message !== 'object') return;
 
 		if (message.type === 'ipc.add.event.listener') {

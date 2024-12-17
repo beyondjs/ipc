@@ -10,7 +10,7 @@ export default class {
 	#listeners: Map<string, Set<EventListenerType>> = new Map();
 
 	constructor() {
-		process.on('message', this.#onmessage);
+		process.on('message', this.#onevent);
 	}
 
 	emit(event: string, message: any) {
@@ -83,7 +83,7 @@ export default class {
 		});
 	};
 
-	#onmessage = (message: IEventDispatch) => {
+	#onevent = (message: IEventDispatch) => {
 		// Check if message is an IPC event, otherwise just return
 		if (typeof message !== 'object' || message.type !== 'ipc.event.dispatch') return;
 		if (!message.source || !message.event) {
@@ -95,6 +95,6 @@ export default class {
 	};
 
 	destroy() {
-		process.removeListener('message', this.#onmessage);
+		process.removeListener('message', this.#onevent);
 	}
 }

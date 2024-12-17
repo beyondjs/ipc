@@ -11,7 +11,7 @@ export default class {
 	}
 
 	// Private method used by the children processes to allow child-child notifications
-	emit(sourceName: string, event: string, message) {
+	emit(sourceName: string, event: string, message: any) {
 		// Emit the event to the listeners of the main process
 		const key = `${sourceName}|${event}`;
 		if (this.#listeners.has(key)) {
