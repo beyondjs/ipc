@@ -1,16 +1,20 @@
 const PendingPromise = require('@beyond-js/pending-promise');
-const uuid = require('uuid');
 
 module.exports = class {
 	// The process on which the actions will be executed
 	#process;
-	#instance = uuid();
+	#container;
 
-	constructor(fork) {
+	/**
+	 *
+	 * @param {*} fork
+	 * @param {*} container the ipc object.
+	 */
+	constructor(fork, container) {
 		// If it is the main process, then it is required the fork parameter
 		// with which to establish the communication
 		if (!process.send && !fork) throw new Error('Invalid parameters');
-
+		this.#container = container;
 		this.#process = fork ? fork : process;
 		this.#process.on('message', this.#onmessage);
 	}
@@ -40,7 +44,7 @@ module.exports = class {
 
 		const rq = {
 			type: 'ipc.request',
-			dispatcher: { instance: this.#instance },
+			ipc: { instance: this.#container.id },
 			request: { target, id, action, params }
 		};
 
@@ -55,7 +59,7 @@ module.exports = class {
 	 */
 	#onmessage = message => {
 		if (typeof message !== 'object' || message.request?.type !== 'ipc.response') return;
-		if (this.#instance !== message.dispatcher?.instance) return;
+		if (this.#container.id !== message.ipc?.instance) return;
 		if (!this.#pendings.has(message.request.id)) {
 			console.error('Response message id is invalid', message);
 			return;

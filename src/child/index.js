@@ -1,11 +1,18 @@
 const IPCServer = require('./server');
+const uuid = require('uuid').v4;
 
 module.exports = class extends IPCServer {
-	#dispatcher = new (require('../dispatcher'))();
-
+	#dispatcher;
+	#id = uuid();
 	#events = new (require('./events'))();
 	get events() {
 		return this.#events;
+	}
+
+	constructor() {
+		super();
+
+		this.#dispatcher = new (require('../dispatcher'))(undefined, this);
 	}
 
 	notify(...params) {

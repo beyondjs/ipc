@@ -1,5 +1,12 @@
+const uuid = require('uuid').v4;
+
 module.exports = class {
 	#dispatchers = new Map();
+
+	#id = uuid();
+	get id() {
+		return this.#id;
+	}
 
 	#server = new (require('./server'))(this.#dispatchers);
 	handle = (action, listener) => this.#server.handle(action, listener);
@@ -23,7 +30,7 @@ module.exports = class {
 			throw new Error(`Process "${name}" already registered`);
 		}
 
-		this.#dispatchers.set(name, new (require('../dispatcher'))(fork));
+		this.#dispatchers.set(name, new (require('../dispatcher'))(fork, this));
 		this.#server.registerFork(name, fork);
 		this.#events.registerFork(name, fork);
 	}
