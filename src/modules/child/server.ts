@@ -10,33 +10,41 @@ export default class {
 		process.on('message', this.#onrequest);
 	}
 
-	#exec = async (message: IRequest) => {
-		const send = (response: object) => {
-			Object.assign(response, <IResponse>{ type: 'ipc.response', request: { id: message.id } });
+	#exec = async (request: IRequest) => {
+		const send = ({ value, error }: { value?: object; error?: string }) => {
+			const response: IResponse = {
+				type: 'ipc.response',
+				ipc: { instance: request.ipc.instance },
+				request: { id: request.id },
+				error,
+				response: value
+			};
+
 			process.send(response);
 		};
 
-		if (!message.action) {
+		if (!request.action) {
 			send({ error: 'Property action is undefined' });
 			return;
 		}
 
-		if (!this.#handlers.has(message.action)) {
-			send({ error: `Handler of action "${message.action}" not found` });
+		if (!this.#handlers.has(request.action)) {
+			send({ error: `Handler of action "${request.action}" not found` });
 			return;
 		}
 
-		const handler = this.#handlers.get(message.action);
+		const handler = this.#handlers.get(request.action);
 
-		let response;
+		let value;
 		try {
-			response = await handler(...message.params);
+			value = await handler(...request.params);
 		} catch (exc) {
-			send({ error: { message: exc.message, stack: exc.stack } });
+			console.error(exc);
+			send({ error: exc.message });
 			return;
 		}
 
-		send({ response: response });
+		send({ value });
 	};
 
 	#onrequest = (request: IRequest) => {
