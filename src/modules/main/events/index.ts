@@ -1,4 +1,4 @@
-import type { EventListenerType, IEventEmit } from '../../interfaces';
+import type { EventListenerType } from '../../interfaces';
 import Sources from './sources';
 
 export type ListenersType = Map<string, Set<EventListenerType>>;
@@ -47,7 +47,7 @@ export default class {
 	}
 
 	// To emit events from the main to the forked children and even to the main process
-	emit(event: string, message: IEventEmit) {
+	emit(event: string, message: any) {
 		this.#sources.emit('main', event, message);
 	}
 

@@ -21,8 +21,8 @@ export default class {
 		return this.#events;
 	}
 
-	notify(...params: any[]) {
-		this.#events.emit(...params);
+	notify(event: string, message: any) {
+		this.#events.emit(event, message);
 	}
 
 	register(name: string, fork: NodeJS.Process) {
