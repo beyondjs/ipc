@@ -1,5 +1,5 @@
-import { ListenersType } from '..';
-
+import { ListenersType } from '../';
+import Source from './source';
 export default class {
 	#sources = new Map();
 
@@ -30,7 +30,7 @@ export default class {
 	}
 
 	register(name: string, fork: NodeJS.Process) {
-		this.#sources.set(name, new (require('./source'))(this, name, fork));
+		this.#sources.set(name, new Source(this, name, fork));
 	}
 
 	destroy() {

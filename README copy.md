@@ -12,7 +12,7 @@ npm install @beyond-js/ipc
 ## Usage
 
 ```javascript
-const ipc = require('@beyond-js/ipc');
+const ipc = require('@beyond-js/ipc/main');
 
 // In the main process
 const main = ipc;

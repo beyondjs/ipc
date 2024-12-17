@@ -1,6 +1,7 @@
-import type Dispatcher from '../dispatcher';
+import Dispatcher from '../dispatcher';
 import IPCServer from './server';
 import { v4 as uuid } from 'uuid';
+import Events from './events';
 
 export default class extends IPCServer {
 	#dispatcher: Dispatcher;
@@ -10,7 +11,7 @@ export default class extends IPCServer {
 		return this.#instance;
 	}
 
-	#events = new (require('./events'))();
+	#events = new Events();
 	get events() {
 		return this.#events;
 	}
@@ -18,18 +19,18 @@ export default class extends IPCServer {
 	constructor() {
 		super();
 
-		this.#dispatcher = new (require('../dispatcher'))(undefined, this);
+		this.#dispatcher = new Dispatcher(this, undefined);
 	}
 
-	notify(...params: any[]) {
-		this.#events.emit(...params);
+	notify(event: string, message: any) {
+		this.#events.emit(event, message);
 	}
 
 	/**
 	 * Execute an IPC action
 	 *
 	 * @param target The name of the target process
-	 * @param action The name of the action being requested
+	 * @param action The nam	e of the action being requested
 	 * @param params The parameters of the action
 	 * @returns {*}
 	 */

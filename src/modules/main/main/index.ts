@@ -1,6 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import Server from './server';
 import Events from './events';
+import Dispatcher from '../dispatcher';
 
 type ListenerType = (...[]) => any;
 
@@ -34,7 +35,7 @@ export default class {
 			throw new Error(`Process "${name}" already registered`);
 		}
 
-		this.#dispatchers.set(name, new (require('../dispatcher'))(fork, this));
+		this.#dispatchers.set(name, new Dispatcher(this, fork));
 		this.#server.registerFork(name, fork);
 		this.#events.registerFork(name, fork);
 	}

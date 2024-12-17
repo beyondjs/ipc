@@ -1,12 +1,13 @@
 import type Dispatcher from '../../dispatcher';
 import type { ActionHandlerType } from '../../interfaces';
+import Listeners from './listeners';
 
 export default class {
 	// Listeners of the forked processes messages
 	#listeners;
 
 	constructor(dispatchers: Map<string, Dispatcher>) {
-		this.#listeners = new (require('./listeners'))(this, dispatchers);
+		this.#listeners = new Listeners(this, dispatchers);
 	}
 
 	#handlers: Map<string, ActionHandlerType> = new Map();

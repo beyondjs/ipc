@@ -1,5 +1,6 @@
 import type { IRequest, IResponse } from '../interfaces';
 import { PendingPromise } from '@beyond-js/pending-promise/main';
+import IPCError from '../error';
 
 export default class {
 	// The process on which the actions will be executed
@@ -15,7 +16,7 @@ export default class {
 		this.#process.on('message', this.#onresponse);
 	}
 
-	#IPCError = require('../error');
+	#IPCError = IPCError;
 
 	#id = 0;
 	#pendings = new Map();
