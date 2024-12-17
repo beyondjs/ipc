@@ -39,6 +39,7 @@ export default class {
 				error,
 				response: value
 			};
+
 			this.#fork.send(response);
 		};
 
