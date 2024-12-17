@@ -8,8 +8,23 @@
 	"scripts": {
 		"concat": "node ../concat/index.js ./modules ipc.ts"
 	},
-	"exports": {
-		".": "./index.js"
+	"modules": {
+		"path": "./modules"
+	},
+	"deployment": {
+		"distributions": [
+			{
+				"name": "types",
+				"environment": "development",
+				"platform": "node",
+				"ports": {
+					"bundles": 4531
+				},
+				"ts": {
+					"compiler": "tsc"
+				}
+			}
+		]
 	},
 	"dependencies": {
 		"@beyond-js/pending-promise": "~0.0.3",

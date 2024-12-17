@@ -1,4 +1,6 @@
 import { v4 as uuid } from 'uuid';
+import Server from './server';
+import Events from './events';
 
 type ListenerType = (...[]) => any;
 
@@ -10,11 +12,11 @@ export default class {
 		return this.#instance;
 	}
 
-	#server = new (require('./server'))(this.#dispatchers);
+	#server = new Server(this.#dispatchers);
 	handle = (action: string, listener: ListenerType) => this.#server.handle(action, listener);
 	removeHandler = (action: string) => this.#server.off(action);
 
-	#events = new (require('./events'))();
+	#events = new Events();
 	get events() {
 		return this.#events;
 	}
