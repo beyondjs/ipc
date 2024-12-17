@@ -1,11 +1,20 @@
-module.exports = class {
-	#sources;
-	#name;
-	#fork;
+import type Sources from '.';
+
+interface IEventDispatchMessage {
+	type: 'ipc.event.dispatch';
+	source: string;
+	event: string;
+	message: any;
+}
+
+export default class {
+	#sources: Sources;
+	#name: string;
+	#fork: NodeJS.Process;
 
 	#listeners = new Set();
 
-	constructor(sources, name, fork) {
+	constructor(sources: Sources, name: string, fork: NodeJS.Process) {
 		this.#sources = sources;
 		this.#name = name;
 		this.#fork = fork;
@@ -17,21 +26,16 @@ module.exports = class {
 	 * Dispatch the event if the forked process is registered to it
 	 * The execution of this method is made by the index.js file (the sources collection)
 	 *
-	 * @param sourceName {string} The name of the process that is sending the event
-	 * @param event {string} The event name
-	 * @param message {*} The message to be sent
+	 * @param sourceName The name of the process that is sending the event
+	 * @param event The event name
+	 * @param message The message to be sent
 	 */
-	emit(sourceName, event, message) {
+	emit(sourceName: string, event: string, message: any) {
 		const key = `${sourceName}|${event}`;
 		if (!this.#listeners.has(key)) return;
 
 		try {
-			this.#fork.send({
-				type: 'ipc.event.dispatch',
-				source: sourceName,
-				event: event,
-				message: message,
-			});
+			this.#fork.send(<IEventDispatchMessage>{ type: 'ipc.event.dispatch', source: sourceName, event, message });
 		} catch (exc) {
 			console.warn(`Error emitting event ${key} to fork process with name "${this.#name}"`, exc.message);
 		}
@@ -82,4 +86,4 @@ module.exports = class {
 	destroy() {
 		this.#fork.removeListener('message', this.#onmessage);
 	}
-};
+}

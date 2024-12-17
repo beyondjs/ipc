@@ -1,27 +1,29 @@
-const uuid = require('uuid').v4;
+import { v4 as uuid } from 'uuid';
 
-module.exports = class {
+type ListenerType = (...[]) => any;
+
+export default class {
 	#dispatchers = new Map();
 
-	#id = uuid();
-	get id() {
-		return this.#id;
+	#instance = uuid();
+	get instance() {
+		return this.#instance;
 	}
 
 	#server = new (require('./server'))(this.#dispatchers);
-	handle = (action, listener) => this.#server.handle(action, listener);
-	removeHandler = action => this.#server.off(action);
+	handle = (action: string, listener: ListenerType) => this.#server.handle(action, listener);
+	removeHandler = (action: string) => this.#server.off(action);
 
 	#events = new (require('./events'))();
 	get events() {
 		return this.#events;
 	}
 
-	notify(...params) {
+	notify(...params: any[]) {
 		this.#events.emit(...params);
 	}
 
-	register(name, fork) {
+	register(name: string, fork: NodeJS.Process) {
 		if (!name || !fork) {
 			throw new Error('Invalid parameters');
 		}
@@ -35,7 +37,7 @@ module.exports = class {
 		this.#events.registerFork(name, fork);
 	}
 
-	unregister(name) {
+	unregister(name: string) {
 		if (!this.#dispatchers.has(name)) throw new Error(`Process ${name} not found`);
 		const dispatcher = this.#dispatchers.get(name);
 		dispatcher.destroy();
@@ -44,13 +46,8 @@ module.exports = class {
 
 	/**
 	 * Execute an IPC action
-	 *
-	 * @param target {string | undefined} The name of the target process
-	 * @param action {string} The name of the action being requested
-	 * @param params {object} The parameters of the action
-	 * @returns {*}
 	 */
-	async exec(target, action, ...params) {
+	async exec(target: string | undefined, action: string, ...params: any[]): Promise<any> {
 		if (target === 'main') {
 			// It is possible to execute an action from the main process directly
 			// to an action of the main process
@@ -67,4 +64,4 @@ module.exports = class {
 	destroy() {
 		this.#dispatchers.forEach(dispatcher => dispatcher.destroy());
 	}
-};
+}

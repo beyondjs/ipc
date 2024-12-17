@@ -1,22 +1,18 @@
-const PendingPromise = require('@beyond-js/pending-promise');
+import type { IRequest, IResponse } from '../interfaces';
+import { PendingPromise } from '@beyond-js/pending-promise/main';
 
-module.exports = class {
+export default class {
 	// The process on which the actions will be executed
-	#process;
-	#container;
+	#process: NodeJS.Process;
+	#container: { instance: string };
 
-	/**
-	 *
-	 * @param {*} fork
-	 * @param {*} container the ipc object.
-	 */
-	constructor(fork, container) {
+	constructor(container: { instance: string }, fork: NodeJS.Process) {
 		// If it is the main process, then it is required the fork parameter
 		// with which to establish the communication
 		if (!process.send && !fork) throw new Error('Invalid parameters');
 		this.#container = container;
 		this.#process = fork ? fork : process;
-		this.#process.on('message', this.#onmessage);
+		this.#process.on('message', this.#onresponse);
 	}
 
 	#IPCError = require('../error');
@@ -26,13 +22,8 @@ module.exports = class {
 
 	/**
 	 * Execute an IPC action
-	 *
-	 * @param target {string | undefined} The target process where to execute the action
-	 * @param action {string} The name of the action being requested
-	 * @param params {*} The parameters of the action
-	 * @returns {*}
 	 */
-	exec(target, action, ...params) {
+	exec(target: string | undefined, action: string, ...params: any[]): Promise<any> {
 		if (!process.send && target) {
 			// Trying to execute from the main process to the main process
 			return Promise.reject(new this.#IPCError('Parameter target cannot be "main" in this context'));
@@ -40,12 +31,14 @@ module.exports = class {
 
 		const id = ++this.#id;
 		const promise = new PendingPromise();
-		promise.id = id;
 
-		const rq = {
+		const rq: IRequest = {
 			type: 'ipc.request',
-			ipc: { instance: this.#container.id },
-			request: { target, id, action, params }
+			ipc: { instance: this.#container.instance },
+			target,
+			id,
+			action,
+			params
 		};
 
 		this.#pendings.set(id, promise);
@@ -57,9 +50,11 @@ module.exports = class {
 	/**
 	 * Response reception handler
 	 */
-	#onmessage = message => {
-		if (typeof message !== 'object' || message.request?.type !== 'ipc.response') return;
-		if (this.#container.id !== message.ipc?.instance) return;
+	#onresponse = (message: IResponse) => {
+		// Check if message is an IPC response, otherwise just return
+		if (typeof message !== 'object' || message.type !== 'ipc.response') return;
+
+		if (this.#container.instance !== message.ipc?.instance) return;
 		if (!this.#pendings.has(message.request.id)) {
 			console.error('Response message id is invalid', message);
 			return;
@@ -67,13 +62,13 @@ module.exports = class {
 
 		const pending = this.#pendings.get(message.request.id);
 		const { response, error } = message;
-		error && console.error(error instanceof Error || error.stack ? error.stack : error);
+		error && console.error(error instanceof Error && error.stack ? error.stack : error);
 		error ? pending.reject(new this.#IPCError(error)) : pending.resolve(response);
 
 		this.#pendings.delete(message.request.id);
 	};
 
 	destroy() {
-		this.#process.removeListener('message', this.#onmessage);
+		this.#process.removeListener('message', this.#onresponse);
 	}
-};
+}

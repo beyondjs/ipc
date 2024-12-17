@@ -9,6 +9,10 @@
 		".": "./index.js"
 	},
 	"dependencies": {
+		"@beyond-js/pending-promise": "~0.0.3",
 		"uuid": "^11.0.3"
+	},
+	"devDependencies": {
+		"@types/node": "~22.10.2"
 	}
 }

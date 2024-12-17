@@ -1,17 +1,20 @@
-module.exports = class {
+import type Dispatcher from '../../dispatcher';
+import type { ActionHandlerType } from '../../interfaces';
+
+export default class {
 	// Listeners of the forked processes messages
 	#listeners;
 
-	constructor(dispatchers) {
+	constructor(dispatchers: Map<string, Dispatcher>) {
 		this.#listeners = new (require('./listeners'))(this, dispatchers);
 	}
 
-	#handlers = new Map();
+	#handlers: Map<string, ActionHandlerType> = new Map();
 
-	handle = (action, listener) => this.#handlers.set(action, listener);
-	off = action => this.#handlers.delete(action);
+	handle = (action: string, handler: ActionHandlerType) => this.#handlers.set(action, handler);
+	off = (action: string) => this.#handlers.delete(action);
 
-	has = action => this.#handlers.has(action);
+	has = (action: string) => this.#handlers.has(action);
 
 	/**
 	 * Register a forked process to hear for actions requests
@@ -19,9 +22,11 @@ module.exports = class {
 	 * @param name {string} The name assigned to the forked process
 	 * @param fork {object} The forked process
 	 */
-	registerFork = (name, fork) => this.#listeners.register(name, fork);
+	registerFork(name: string, fork: NodeJS.Process) {
+		this.#listeners.register(name, fork);
+	}
 
-	async exec(action, ...params) {
+	async exec(action: string, ...params: any[]) {
 		if (!action) throw new Error(`Action parameter must be set`);
 		if (!this.#handlers.has(action)) throw new Error(`Action "${action}" not set`);
 
@@ -32,4 +37,4 @@ module.exports = class {
 	destroy() {
 		this.#listeners.destroy();
 	}
-};
+}

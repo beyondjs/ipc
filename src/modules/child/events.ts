@@ -1,31 +1,31 @@
-module.exports = class {
-	#listeners = new Map();
+import type {
+	IAddEventListener,
+	IRemoveEventListener,
+	IEventEmit,
+	IEventDispatch,
+	EventListenerType
+} from '../interfaces';
+
+export default class {
+	#listeners: Map<string, Set<EventListenerType>> = new Map();
 
 	constructor() {
 		process.on('message', this.#onmessage);
 	}
 
-	emit = (event, message) =>
-		process.send({
-			type: 'ipc.event.emit',
-			event: event,
-			message: message,
-		});
+	emit(event: string, message: any) {
+		process.send(<IEventEmit>{ type: 'ipc.event.emit', event, message });
+	}
 
-	on(source, event, listener) {
+	on(source: string, event: string, listener: EventListenerType) {
 		if (typeof source !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
 		}
 
 		const key = `${source}|${event}`;
-		!this.#listeners.has(key) &&
-			process.send({
-				type: 'ipc.add.event.listener',
-				source: source,
-				event: event,
-			});
+		!this.#listeners.has(key) && process.send(<IAddEventListener>{ type: 'ipc.add.event.listener', source, event });
 
-		let listeners;
+		let listeners: Set<EventListenerType>;
 		if (this.#listeners.has(key)) {
 			listeners = this.#listeners.get(key);
 		} else {
@@ -35,7 +35,7 @@ module.exports = class {
 		listeners.add(listener);
 	}
 
-	off(source, event, listener) {
+	off(source: string, event: string, listener: EventListenerType) {
 		if (typeof source !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
 		}
@@ -58,14 +58,14 @@ module.exports = class {
 
 		!listeners.size &&
 			this.#listeners.delete(key) &&
-			process.send({
+			process.send(<IRemoveEventListener>{
 				type: 'ipc.remove.event.listener',
 				source: source,
-				event: event,
+				event: event
 			});
 	}
 
-	#exec = message => {
+	#exec = (message: IEventDispatch) => {
 		const key = `${message.source}|${message.event}`;
 		if (!this.#listeners.has(key)) {
 			console.warn(`Received an event with no listeners registered "${key}"`);
@@ -83,7 +83,8 @@ module.exports = class {
 		});
 	};
 
-	#onmessage = message => {
+	#onmessage = (message: IEventDispatch) => {
+		// Check if message is an IPC event, otherwise just return
 		if (typeof message !== 'object' || message.type !== 'ipc.event.dispatch') return;
 		if (!message.source || !message.event) {
 			console.error('Invalid event message received', message);
@@ -96,4 +97,4 @@ module.exports = class {
 	destroy() {
 		process.removeListener('message', this.#onmessage);
 	}
-};
+}
