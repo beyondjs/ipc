@@ -1,9 +1,15 @@
 export type ActionHandlerType = (...params: any[]) => any;
 
-export type EventListenerType = (message: any) => void;
+export type EventListenerType = (data: any) => void;
 
-export interface IRequest {
-	type: 'ipc.request';
+export const version = '1.0.0';
+
+/**
+ * Action call request
+ */
+export interface IActionRequest {
+	version: typeof version;
+	type: 'ipc.action.request';
 	ipc: { instance: string };
 	id: number;
 	target: string;
@@ -11,35 +17,53 @@ export interface IRequest {
 	params: any[];
 }
 
-export interface IResponse {
-	type: 'ipc.response';
+/**
+ * Action response
+ */
+export interface IActionResponse {
+	version: typeof version;
+	type: 'ipc.action.response';
 	ipc: { instance: string };
 	request: { id: number };
 	response?: any;
 	error?: Error | string;
 }
 
-export interface IAddEventListener {
-	type: 'ipc.add.event.listener';
-	source: string;
+/**
+ * Child event emit
+ */
+export interface IEvent {
+	version: typeof version;
+	type: 'ipc.event';
+	event: string;
+	data: any;
+}
+
+/**
+ * Used for child to child communication, to inform the main process about the event subscription.
+ * The main process uses the concept of bridges to route the other child events
+ */
+export interface IC2CSubscribe {
+	version: typeof version;
+	type: 'ipc.c2c.event.subscribe';
+	processTag: string; // The process tag as it was registered in the IPC
 	event: string;
 }
 
-export interface IRemoveEventListener {
-	type: 'ipc.remove.event.listener';
-	source: string;
+export interface IC2CUnsubscribe {
+	version: typeof version;
+	type: 'ipc.c2c.event.unsubscribe';
+	processTag: string; // The process tag as it was registered in the IPC
 	event: string;
 }
 
-export interface IEventDispatch {
-	type: 'ipc.event.dispatch';
-	source: string;
+/**
+ * Used for events in a child to child communication to route the event to their subscribers
+ */
+export interface IC2CEventRoute {
+	version: typeof version;
+	type: 'ipc.c2c.event.route';
+	processTag: string; // The process tag as it was registered in the IPC
 	event: string;
-	message: any;
-}
-
-export interface IEventEmit {
-	type: 'ipc.event.emit';
-	event: string;
-	message: any;
+	data: any;
 }

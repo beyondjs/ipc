@@ -1,19 +1,26 @@
-import type { IRequest, IResponse, ActionHandlerType } from '../interfaces';
+import type { IActionRequest, IActionResponse, ActionHandlerType } from '../interfaces';
+import { version } from '../interfaces';
 
 export default class {
 	#handlers: Map<string, ActionHandlerType> = new Map();
 
-	handle = (action: string, listener: ActionHandlerType) => this.#handlers.set(action, listener);
-	removeHandler = (action: string) => this.#handlers.delete(action);
+	handle(action: string, listener: ActionHandlerType) {
+		this.#handlers.set(action, listener);
+	}
+
+	removeHandler(action: string) {
+		return this.#handlers.delete(action);
+	}
 
 	constructor() {
 		process.on('message', this.#onrequest);
 	}
 
-	#exec = async (request: IRequest) => {
+	#exec = async (request: IActionRequest) => {
 		const send = ({ value, error }: { value?: object; error?: string }) => {
-			const response: IResponse = {
-				type: 'ipc.response',
+			const response: IActionResponse = {
+				version,
+				type: 'ipc.action.response',
 				ipc: { instance: request.ipc.instance },
 				request: { id: request.id },
 				error,
@@ -47,9 +54,9 @@ export default class {
 		send({ value });
 	};
 
-	#onrequest = (request: IRequest) => {
+	#onrequest = (request: IActionRequest) => {
 		// Check if message is effectively an IPC request
-		if (typeof request !== 'object' || request.type !== 'ipc.request') return;
+		if (typeof request !== 'object' || request.type !== 'ipc.action.request') return;
 		if (!request.id) {
 			console.error('An undefined request id received on ipc communication', request);
 			return;

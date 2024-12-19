@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import Server from './server';
+import Actions from './actions';
 import Events from './events';
 import Dispatcher from '../dispatcher';
 
@@ -13,9 +13,15 @@ export default class {
 		return this.#instance;
 	}
 
-	#server = new Server(this.#dispatchers);
-	handle = (action: string, listener: ListenerType) => this.#server.handle(action, listener);
-	removeHandler = (action: string) => this.#server.off(action);
+	#actions = new Actions(this.#dispatchers);
+
+	handle(action: string, listener: ListenerType) {
+		this.#actions.handle(action, listener);
+	}
+
+	removeHandler(action: string) {
+		this.#actions.off(action);
+	}
 
 	#events = new Events();
 	get events() {
@@ -36,7 +42,7 @@ export default class {
 		}
 
 		this.#dispatchers.set(name, new Dispatcher(this, fork));
-		this.#server.registerFork(name, fork);
+		this.#actions.registerFork(name, fork);
 		this.#events.registerFork(name, fork);
 	}
 
@@ -54,7 +60,7 @@ export default class {
 		if (target === 'main') {
 			// It is possible to execute an action from the main process directly
 			// to an action of the main process
-			return await this.#server.exec(action, ...params);
+			return await this.#actions.exec(action, ...params);
 		}
 
 		if (!this.#dispatchers.has(target)) throw new Error(`Target process "${target}" not found`);

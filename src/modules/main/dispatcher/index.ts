@@ -1,4 +1,5 @@
-import type { IRequest, IResponse } from '../interfaces';
+import type { IActionRequest, IActionResponse } from '../interfaces';
+import { version } from '../interfaces';
 import { PendingPromise } from '@beyond-js/pending-promise/main';
 import IPCError from '../error';
 
@@ -33,8 +34,9 @@ export default class {
 		const id = ++this.#id;
 		const promise = new PendingPromise();
 
-		const rq: IRequest = {
-			type: 'ipc.request',
+		const rq: IActionRequest = {
+			version,
+			type: 'ipc.action.request',
 			ipc: { instance: this.#container.instance },
 			target,
 			id,
@@ -51,9 +53,9 @@ export default class {
 	/**
 	 * Response reception handler
 	 */
-	#onresponse = (message: IResponse) => {
+	#onresponse = (message: IActionResponse) => {
 		// Check if message is an IPC response, otherwise just return
-		if (typeof message !== 'object' || message.type !== 'ipc.response') return;
+		if (typeof message !== 'object' || message.type !== 'ipc.action.response') return;
 
 		if (this.#container.instance !== message.ipc?.instance) return;
 		if (!this.#pendings.has(message.request.id)) {

@@ -1,9 +1,9 @@
 import Dispatcher from '../dispatcher';
-import IPCServer from './server';
+import Actions from './actions';
 import { v4 as uuid } from 'uuid';
 import Events from './events';
 
-export default class extends IPCServer {
+export default class extends Actions {
 	#dispatcher: Dispatcher;
 
 	#instance = uuid();

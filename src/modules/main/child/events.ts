@@ -1,10 +1,5 @@
-import type {
-	IAddEventListener,
-	IRemoveEventListener,
-	IEventEmit,
-	IEventDispatch,
-	EventListenerType
-} from '../interfaces';
+import type { IC2CSubscribe, IC2CUnsubscribe, IEvent, IC2CEventRoute, EventListenerType } from '../interfaces';
+import { version } from '../interfaces';
 
 export default class {
 	#listeners: Map<string, Set<EventListenerType>> = new Map();
@@ -13,17 +8,22 @@ export default class {
 		process.on('message', this.#onevent);
 	}
 
-	emit(event: string, message: any) {
-		process.send(<IEventEmit>{ type: 'ipc.event.emit', event, message });
+	emit(event: string, data: any) {
+		process.send(<IEvent>{ type: 'ipc.event', event, data });
 	}
 
-	on(source: string, event: string, listener: EventListenerType) {
-		if (typeof source !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
+	on(processTag: string, event: string, listener: EventListenerType) {
+		if (typeof processTag !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
 		}
 
-		const key = `${source}|${event}`;
-		!this.#listeners.has(key) && process.send(<IAddEventListener>{ type: 'ipc.add.event.listener', source, event });
+		const key = `${processTag}|${event}`;
+		if (!this.#listeners.has(key)) {
+			// In order to start receiving this event in a child to child (C2C) communication, it is
+			// required to inform the subscription to the main process
+			const message: IC2CSubscribe = { version, type: 'ipc.c2c.event.subscribe', processTag, event };
+			process.send(message);
+		}
 
 		let listeners: Set<EventListenerType>;
 		if (this.#listeners.has(key)) {
@@ -35,12 +35,12 @@ export default class {
 		listeners.add(listener);
 	}
 
-	off(source: string, event: string, listener: EventListenerType) {
-		if (typeof source !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
+	off(processTag: string, event: string, listener: EventListenerType) {
+		if (typeof processTag !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
 		}
 
-		const key = `${source}|${event}`;
+		const key = `${processTag}|${event}`;
 
 		let listeners;
 		if (!this.#listeners.has(key)) {
@@ -56,17 +56,23 @@ export default class {
 
 		listeners.delete(listener);
 
-		!listeners.size &&
-			this.#listeners.delete(key) &&
-			process.send(<IRemoveEventListener>{
-				type: 'ipc.remove.event.listener',
-				source: source,
-				event: event
-			});
+		if (!listeners.size) {
+			this.#listeners.delete(key);
+
+			const message: IC2CUnsubscribe = { version, type: 'ipc.c2c.event.unsubscribe', processTag, event };
+			process.send(message);
+		}
 	}
 
-	#exec = (message: IEventDispatch) => {
-		const key = `${message.source}|${message.event}`;
+	#onevent = (message: IC2CEventRoute) => {
+		// Check if message is an IPC event, otherwise just return
+		if (typeof message !== 'object' || message.type !== 'ipc.c2c.event.route') return;
+		if (!message.processTag || !message.event) {
+			console.error('Invalid event message received', message);
+			return;
+		}
+
+		const key = `${message.processTag}|${message.event}`;
 		if (!this.#listeners.has(key)) {
 			console.warn(`Received an event with no listeners registered "${key}"`);
 			return;
@@ -76,22 +82,11 @@ export default class {
 		listeners.forEach(listener => {
 			// Execute the listener
 			try {
-				listener(message.message);
+				listener(message.data);
 			} catch (exc) {
 				console.error(`Error executing listener of event "${key}"`, exc.stack);
 			}
 		});
-	};
-
-	#onevent = (message: IEventDispatch) => {
-		// Check if message is an IPC event, otherwise just return
-		if (typeof message !== 'object' || message.type !== 'ipc.event.dispatch') return;
-		if (!message.source || !message.event) {
-			console.error('Invalid event message received', message);
-			return;
-		}
-
-		this.#exec(message);
 	};
 
 	destroy() {

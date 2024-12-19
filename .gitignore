@@ -1,7 +1,7 @@
-node_modules
 .idea
 .beyond
 .vscode
 .env
-package-lock.json
+node_modules
+!src/modules/node_modules
 concat/output
