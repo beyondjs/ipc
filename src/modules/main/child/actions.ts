@@ -1,5 +1,6 @@
 import type { IActionRequest, IActionResponse, ActionHandlerType } from '../interfaces';
 import { version } from '../interfaces';
+import { VersionError } from '../error';
 
 export default class {
 	#handlers: Map<string, ActionHandlerType> = new Map();
@@ -57,6 +58,14 @@ export default class {
 	#onrequest = (request: IActionRequest) => {
 		// Check if message is effectively an IPC request
 		if (typeof request !== 'object' || request.type !== 'ipc.action.request') return;
+
+		// Check the version of the communication protocol
+		if (request.version !== version) {
+			const error = new VersionError(request.version);
+			console.error(error);
+			return;
+		}
+
 		if (!request.id) {
 			console.error('An undefined request id received on ipc communication', request);
 			return;

@@ -1,5 +1,6 @@
 import type { IC2CSubscribe, IC2CUnsubscribe, IEvent, IC2CEventRoute, EventListenerType } from '../interfaces';
 import { version } from '../interfaces';
+import { VersionError } from '../error';
 
 export default class {
 	#listeners: Map<string, Set<EventListenerType>> = new Map();
@@ -67,6 +68,14 @@ export default class {
 	#onevent = (message: IC2CEventRoute) => {
 		// Check if message is an IPC event, otherwise just return
 		if (typeof message !== 'object' || message.type !== 'ipc.c2c.event.route') return;
+
+		// Check the version of the communication protocol
+		if (message.version !== version) {
+			const error = new VersionError(message.version);
+			console.error(error);
+			return;
+		}
+
 		if (!message.processTag || !message.event) {
 			console.error('Invalid event message received', message);
 			return;
