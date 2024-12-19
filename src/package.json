@@ -2,7 +2,7 @@
 	"name": "@beyond-js/ipc",
 	"author": "BeyondJS",
 	"email": "hello@beyondjs.com",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"license": "MIT",
 	"repository": "https://github.com/beyondjs/ipc",
 	"scripts": {
