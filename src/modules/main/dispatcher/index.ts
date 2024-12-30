@@ -57,6 +57,7 @@ export default class {
 		// Check if message is an IPC response, otherwise just return
 		if (typeof message !== 'object' || message.type !== 'ipc.action.response') return;
 
+		// Check if the message is from the same instance
 		if (this.#container.instance !== message.ipc?.instance) return;
 		if (!this.#pendings.has(message.request.id)) {
 			console.error('Response message id is invalid', message);

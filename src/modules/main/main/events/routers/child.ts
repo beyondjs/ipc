@@ -8,7 +8,7 @@ export default class {
 	#tag: string;
 	#fork: NodeJS.Process;
 
-	#listeners = new Set();
+	#listeners: Map<string, Set<string>> = new Map();
 
 	constructor(routes: Bridges, tag: string, fork: NodeJS.Process) {
 		this.#routes = routes;
@@ -50,20 +50,22 @@ export default class {
 		}
 
 		if (message.type === 'ipc.c2c.event.subscribe') {
-			if (!message.processTag || !message.event) {
+			if (!message.ipc?.instance || !message.processTag || !message.event) {
 				console.error('Invalid message of event subscription', message);
 				return;
 			}
 
 			const key = `${message.processTag}|${message.event}`;
-			if (this.#listeners.has(key)) {
+			if (this.#listeners.has(key) && this.#listeners.get(key).has(message.ipc.instance)) {
 				console.warn(`Event "${key}" already subscribed`);
 				return;
 			}
 
-			this.#listeners.add(key);
+			const instances = this.#listeners.get(key) || new Set();
+			instances.add(message.ipc.instance);
+			this.#listeners.set(key, instances);
 		} else if (message.type === 'ipc.c2c.event.unsubscribe') {
-			if (!message.processTag || !message.event) {
+			if (!message.ipc?.instance || !message.processTag || !message.event) {
 				console.error('Invalid message of event subscription remove', message);
 				return;
 			}
@@ -74,7 +76,9 @@ export default class {
 				return;
 			}
 
-			this.#listeners.add(key);
+			const instances = this.#listeners.get(key);
+			instances.delete(message.ipc.instance);
+			!instances.size && this.#listeners.delete(key);
 		} else if (message.type === 'ipc.event') {
 			if (!message.event || typeof message.event !== 'string') {
 				console.error('Invalid parameters on event emit', message);

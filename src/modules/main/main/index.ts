@@ -8,6 +8,11 @@ type ListenerType = (...[]) => any;
 export default class {
 	#dispatchers = new Map();
 
+	/**
+	 * The instance of the IPC module exists because a project may have multiple versions
+	 * of the IPC package installed, stemming from different project dependencies
+	 * requiring different versions of the package.
+	 */
 	#instance = uuid();
 	get instance() {
 		return this.#instance;
@@ -47,7 +52,10 @@ export default class {
 	}
 
 	unregister(name: string) {
+		// Check if forked process was previously registered
 		if (!this.#dispatchers.has(name)) throw new Error(`Process ${name} not found`);
+
+		// Unregister the forked process
 		const dispatcher = this.#dispatchers.get(name);
 		dispatcher.destroy();
 		this.#dispatchers.delete(name);

@@ -27,10 +27,15 @@ export default class {
 
 	async exec(action: string, ...params: any[]) {
 		if (!action) throw new Error(`Action parameter must be set`);
-		if (!this.#handlers.has(action)) throw new Error(`Action "${action}" not set`);
+
+		// If this action is not handled, just return, no need to send a response as it is
+		// possible that another IPC module is handling this action
+		// (this can happen when there are multiple dependencies utilizing different versions of the IPC package)
+		if (!this.#handlers.has(action)) return;
 
 		// Execute the action
-		return await this.#handlers.get(action)(...params);
+		const handler = this.#handlers.get(action);
+		return await handler(...params);
 	}
 
 	destroy() {

@@ -17,10 +17,18 @@ export default class {
 	}
 
 	constructor() {
-		process.on('message', this.#onrequest);
+		process.on('message', this.#onaction);
 	}
 
-	#exec = async (request: IActionRequest) => {
+	#onaction = (request: IActionRequest) => {
+		// Check if message is effectively an IPC request
+		if (typeof request !== 'object' || request.type !== 'ipc.action.request') return;
+
+		if (!request.id) {
+			console.error('An undefined request id received on ipc communication', request);
+			return;
+		}
+
 		const send = ({ value, error }: { value?: object; error?: string }) => {
 			const response: IActionResponse = {
 				version,
@@ -31,6 +39,7 @@ export default class {
 				response: value
 			};
 
+			error && console.error(`Error executing action "${request.action}": ${error}`);
 			process.send(response);
 		};
 
@@ -39,28 +48,10 @@ export default class {
 			return;
 		}
 
-		if (!this.#handlers.has(request.action)) {
-			send({ error: `Handler of action "${request.action}" not found` });
-			return;
-		}
-
-		const handler = this.#handlers.get(request.action);
-
-		let value;
-		try {
-			value = await handler(...request.params);
-		} catch (exc) {
-			console.error(exc);
-			send({ error: exc.message });
-			return;
-		}
-
-		send({ value });
-	};
-
-	#onrequest = (request: IActionRequest) => {
-		// Check if message is effectively an IPC request
-		if (typeof request !== 'object' || request.type !== 'ipc.action.request') return;
+		// If this action is not handled, just return, no need to send a response as it is
+		// possible that another IPC module is handling this action
+		// (this can happen when there are multiple dependencies utilizing different versions of the IPC package)
+		if (!this.#handlers.has(request.action)) return;
 
 		// Check the version of the communication protocol
 		if (request.version !== version) {
@@ -69,29 +60,31 @@ export default class {
 			return;
 		}
 
-		if (!request.id) {
-			console.error('An undefined request id received on ipc communication', request);
-			return;
-		}
-		this.#exec(request).catch(exc => console.error(exc instanceof Error ? exc.stack : exc));
+		const handler = this.#handlers.get(request.action);
+		handler(...request.params)
+			.then((value: any) => send({ value }))
+			.catch((exc: Error) => send({ error: exc.message }));
 	};
 
 	destroy() {
-		process.removeListener('message', this.#onrequest);
+		process.removeListener('message', this.#onaction);
 	}
 }
 
 /**
  * File: main/child/events.ts
  */
+import type Child from '.';
 import type { IC2CSubscribe, IC2CUnsubscribe, IEvent, IC2CEventRoute, EventListenerType } from '../interfaces';
 import { version } from '../interfaces';
 import { VersionError } from '../error';
 
 export default class {
+	#child: Child;
 	#listeners: Map<string, Set<EventListenerType>> = new Map();
 
-	constructor() {
+	constructor(child: Child) {
+		this.#child = child;
 		process.on('message', this.#onevent);
 	}
 
@@ -99,6 +92,13 @@ export default class {
 		process.send(<IEvent>{ type: 'ipc.event', event, data });
 	}
 
+	/**
+	 * Add an event listener
+	 *
+	 * @param processTag The process tag
+	 * @param event The event name
+	 * @param listener The event listener
+	 */
 	on(processTag: string, event: string, listener: EventListenerType) {
 		if (typeof processTag !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
@@ -108,7 +108,13 @@ export default class {
 		if (!this.#listeners.has(key)) {
 			// In order to start receiving this event in a child to child (C2C) communication, it is
 			// required to inform the subscription to the main process
-			const message: IC2CSubscribe = { version, type: 'ipc.c2c.event.subscribe', processTag, event };
+			const message: IC2CSubscribe = {
+				version,
+				type: 'ipc.c2c.event.subscribe',
+				ipc: { instance: this.#child.instance },
+				processTag,
+				event
+			};
 			process.send(message);
 		}
 
@@ -122,6 +128,13 @@ export default class {
 		listeners.add(listener);
 	}
 
+	/**
+	 * Remove an event listener
+	 *
+	 * @param processTag The process tag
+	 * @param event The event name
+	 * @param listener The event listener
+	 */
 	off(processTag: string, event: string, listener: EventListenerType) {
 		if (typeof processTag !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
@@ -146,11 +159,23 @@ export default class {
 		if (!listeners.size) {
 			this.#listeners.delete(key);
 
-			const message: IC2CUnsubscribe = { version, type: 'ipc.c2c.event.unsubscribe', processTag, event };
+			const message: IC2CUnsubscribe = {
+				version,
+				type: 'ipc.c2c.event.unsubscribe',
+				ipc: { instance: this.#child.instance },
+				processTag,
+				event
+			};
 			process.send(message);
 		}
 	}
 
+	/**
+	 * Event message reception
+	 *
+	 * @param message
+	 * @returns
+	 */
 	#onevent = (message: IC2CEventRoute) => {
 		// Check if message is an IPC event, otherwise just return
 		if (typeof message !== 'object' || message.type !== 'ipc.c2c.event.route') return;
@@ -200,19 +225,23 @@ import Events from './events';
 export default class extends Actions {
 	#dispatcher: Dispatcher;
 
+	/**
+	 * The instance of the IPC module exists because a project may have multiple versions
+	 * of the IPC package installed, stemming from different project dependencies
+	 * requiring different versions of the package.
+	 */
 	#instance = uuid();
 	get instance() {
 		return this.#instance;
 	}
 
-	#events = new Events();
+	#events = new Events(this);
 	get events() {
 		return this.#events;
 	}
 
 	constructor() {
 		super();
-
 		this.#dispatcher = new Dispatcher(this, undefined);
 	}
 
@@ -301,6 +330,7 @@ export default class {
 		// Check if message is an IPC response, otherwise just return
 		if (typeof message !== 'object' || message.type !== 'ipc.action.response') return;
 
+		// Check if the message is from the same instance
 		if (this.#container.instance !== message.ipc?.instance) return;
 		if (!this.#pendings.has(message.request.id)) {
 			console.error('Response message id is invalid', message);
@@ -400,6 +430,7 @@ export interface IEvent {
 export interface IC2CSubscribe {
 	version: typeof version;
 	type: 'ipc.c2c.event.subscribe';
+	ipc: { instance: string };
 	processTag: string; // The process tag as it was registered in the IPC
 	event: string;
 }
@@ -407,6 +438,7 @@ export interface IC2CSubscribe {
 export interface IC2CUnsubscribe {
 	version: typeof version;
 	type: 'ipc.c2c.event.unsubscribe';
+	ipc: { instance: string };
 	processTag: string; // The process tag as it was registered in the IPC
 	event: string;
 }
@@ -454,10 +486,15 @@ export default class {
 
 	async exec(action: string, ...params: any[]) {
 		if (!action) throw new Error(`Action parameter must be set`);
-		if (!this.#handlers.has(action)) throw new Error(`Action "${action}" not set`);
+
+		// If this action is not handled, just return, no need to send a response as it is
+		// possible that another IPC module is handling this action
+		// (this can happen when there are multiple dependencies utilizing different versions of the IPC package)
+		if (!this.#handlers.has(action)) return;
 
 		// Execute the action
-		return await this.#handlers.get(action)(...params);
+		const handler = this.#handlers.get(action);
+		return await handler(...params);
 	}
 
 	destroy() {
@@ -470,20 +507,25 @@ export default class {
  */
 import type Dispatcher from '../../../dispatcher';
 import type { IActionRequest, IActionResponse } from '../../../interfaces';
-import type Server from '../';
+import type Routers from '../';
 import { version } from '../../../interfaces';
 import { VersionError } from '../../../error';
 
 export default class {
-	#fork;
-	#actions;
-	#dispatchers;
+	#fork: NodeJS.Process;
+	#routers: Routers;
+	#dispatchers: Map<string, Dispatcher>;
 
-	// The route function allows to execute actions received from a child process and that
-	// are executed in another child process.
-	// The main ipc manager provides the route function, as it has the dispatchers to execute actions
-	// on the forked processes, and the route is the function.
-	// that knows to which child process is the request being redirected.
+	/**
+	 * The #route method allows to execute actions received from a child process and that
+	 * are executed in another child process.
+	 * The main ipc manager provides the route function, as it has the dispatchers to execute actions
+	 * on the forked processes, and the route is the function.
+	 * that knows to which child process is the request being redirected.
+	 *
+	 * @param message
+	 * @returns
+	 */
 	#route = async (message: IActionRequest): Promise<{ error?: string; value?: any }> => {
 		const { target } = message;
 		if (!this.#dispatchers.has(target)) {
@@ -495,8 +537,8 @@ export default class {
 		return { value };
 	};
 
-	constructor(actions: Server, fork: NodeJS.Process, dispatchers: Map<string, Dispatcher>) {
-		this.#actions = actions;
+	constructor(routers: Routers, fork: NodeJS.Process, dispatchers: Map<string, Dispatcher>) {
+		this.#routers = routers;
 		this.#fork = fork;
 		this.#dispatchers = dispatchers;
 		fork.on('message', this.#onrequest);
@@ -522,20 +564,21 @@ export default class {
 		}
 
 		if (message.target === 'main') {
-			if (!this.#actions.has(message.action)) {
+			if (!this.#routers.has(message.action)) {
 				send({ error: `Action "${message.action}" not found` });
 				return;
 			}
 
-			let value: any;
-			try {
-				value = await this.#actions.exec(message.action, ...message.params);
-			} catch (exc) {
-				console.error(exc);
-				send({ error: `Error execution IPC action: ${exc.message}` });
-				return;
-			}
-			send({ value });
+			this.#routers
+				.exec(message.action, ...message.params)
+				.then((value: any) => {
+					send({ value });
+				})
+				.catch((exc: Error) => {
+					console.error(exc);
+					send({ error: `Error execution IPC action: ${exc.message}` });
+					return;
+				});
 		} else {
 			send(await this.#route(message));
 		}
@@ -735,12 +778,12 @@ export default class {
 		}
 
 		if (message.type === 'ipc.c2c.event.subscribe') {
-			if (!message.processTag || !message.event) {
+			if (!message.ipc?.instance || !message.processTag || !message.event) {
 				console.error('Invalid message of event subscription', message);
 				return;
 			}
 
-			const key = `${message.processTag}|${message.event}`;
+			const key = `${message.processTag}|${message.ipc.instance}|${message.event}`;
 			if (this.#listeners.has(key)) {
 				console.warn(`Event "${key}" already subscribed`);
 				return;
@@ -748,12 +791,12 @@ export default class {
 
 			this.#listeners.add(key);
 		} else if (message.type === 'ipc.c2c.event.unsubscribe') {
-			if (!message.processTag || !message.event) {
+			if (!message.ipc?.instance || !message.processTag || !message.event) {
 				console.error('Invalid message of event subscription remove', message);
 				return;
 			}
 
-			const key = `${message.processTag}|${message.event}`;
+			const key = `${message.processTag}|${message.ipc.instance}|${message.event}`;
 			if (!this.#listeners.has(key)) {
 				console.warn(`Event "${key}" was not previously subscribed`);
 				return;
@@ -813,6 +856,11 @@ type ListenerType = (...[]) => any;
 export default class {
 	#dispatchers = new Map();
 
+	/**
+	 * The instance of the IPC module exists because a project may have multiple versions
+	 * of the IPC package installed, stemming from different project dependencies
+	 * requiring different versions of the package.
+	 */
 	#instance = uuid();
 	get instance() {
 		return this.#instance;
@@ -852,7 +900,10 @@ export default class {
 	}
 
 	unregister(name: string) {
+		// Check if forked process was previously registered
 		if (!this.#dispatchers.has(name)) throw new Error(`Process ${name} not found`);
+
+		// Unregister the forked process
 		const dispatcher = this.#dispatchers.get(name);
 		dispatcher.destroy();
 		this.#dispatchers.delete(name);
@@ -887,7 +938,7 @@ export default class {
 Processor: ts
 ************/
 
-// child/actions.ts
+// child\actions.ts
 declare namespace ns_0 {
   import ActionHandlerType = ns_6.ActionHandlerType;
   export class _default {
@@ -900,7 +951,7 @@ declare namespace ns_0 {
 }
 
 
-// child/events.ts
+// child\events.ts
 declare namespace ns_1 {
   import EventListenerType = ns_6.EventListenerType;
   export class _default {
@@ -914,7 +965,7 @@ declare namespace ns_1 {
 }
 
 
-// child/index.ts
+// child\index.ts
 declare namespace ns_2 {
   import Actions = ns_0._default;
   import Events = ns_1._default;
@@ -938,7 +989,7 @@ declare namespace ns_2 {
 }
 
 
-// dispatcher/index.ts
+// dispatcher\index.ts
 declare namespace ns_3 {
   /// <reference types="node" />
   export class _default {
@@ -972,7 +1023,7 @@ declare namespace ns_5 {
 }
 
 
-// interfaces/index.ts
+// interfaces\index.ts
 declare namespace ns_6 {
   export type ActionHandlerType = (...params: any[]) => any;
   export type EventListenerType = (data: any) => void;
@@ -1044,7 +1095,7 @@ declare namespace ns_6 {
 }
 
 
-// main/actions/index.ts
+// main\actions\index.ts
 declare namespace ns_7 {
   /// <reference types="node" />
   import Dispatcher = ns_3._default;
@@ -1068,7 +1119,7 @@ declare namespace ns_7 {
 }
 
 
-// main/actions/routers/child.ts
+// main\actions\routers\child.ts
 declare namespace ns_8 {
   /// <reference types="node" />
   import Dispatcher = ns_3._default;
@@ -1081,7 +1132,7 @@ declare namespace ns_8 {
 }
 
 
-// main/actions/routers/index.ts
+// main\actions\routers\index.ts
 declare namespace ns_9 {
   /// <reference types="node" />
   import Dispatcher = ns_3._default;
@@ -1095,8 +1146,15 @@ declare namespace ns_9 {
 }
 
 
-// main/events/index.ts
+// main\events\index.ts
 declare namespace ns_10 {
+  /// <reference types="node" />
+  /// <reference types="node" />
+  /// <reference types="node" />
+  /// <reference types="node" />
+  /// <reference types="node" />
+  /// <reference types="node" />
+  /// <reference types="node" />
   import EventListenerType = ns_6.EventListenerType;
   export class _default {
     #private;
@@ -1126,7 +1184,7 @@ declare namespace ns_10 {
 }
 
 
-// main/events/routers/child.ts
+// main\events\routers\child.ts
 declare namespace ns_11 {
   /// <reference types="node" />
   import Bridges = ns_12._default;
@@ -1147,7 +1205,7 @@ declare namespace ns_11 {
 }
 
 
-// main/events/routers/index.ts
+// main\events\routers\index.ts
 declare namespace ns_12 {
   /// <reference types="node" />
   export class _default {
@@ -1159,7 +1217,7 @@ declare namespace ns_12 {
 }
 
 
-// main/index.ts
+// main\index.ts
 declare namespace ns_13 {
   /// <reference types="node" />
   import Events = ns_10._default;
