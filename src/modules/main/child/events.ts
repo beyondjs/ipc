@@ -1,11 +1,14 @@
+import type Child from '.';
 import type { IC2CSubscribe, IC2CUnsubscribe, IEvent, IC2CEventRoute, EventListenerType } from '../interfaces';
 import { version } from '../interfaces';
 import { VersionError } from '../error';
 
 export default class {
+	#child: Child;
 	#listeners: Map<string, Set<EventListenerType>> = new Map();
 
-	constructor() {
+	constructor(child: Child) {
+		this.#child = child;
 		process.on('message', this.#onevent);
 	}
 
@@ -13,6 +16,13 @@ export default class {
 		process.send(<IEvent>{ type: 'ipc.event', event, data });
 	}
 
+	/**
+	 * Add an event listener
+	 *
+	 * @param processTag The process tag
+	 * @param event The event name
+	 * @param listener The event listener
+	 */
 	on(processTag: string, event: string, listener: EventListenerType) {
 		if (typeof processTag !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
@@ -22,7 +32,13 @@ export default class {
 		if (!this.#listeners.has(key)) {
 			// In order to start receiving this event in a child to child (C2C) communication, it is
 			// required to inform the subscription to the main process
-			const message: IC2CSubscribe = { version, type: 'ipc.c2c.event.subscribe', processTag, event };
+			const message: IC2CSubscribe = {
+				version,
+				type: 'ipc.c2c.event.subscribe',
+				ipc: { instance: this.#child.instance },
+				processTag,
+				event
+			};
 			process.send(message);
 		}
 
@@ -36,6 +52,13 @@ export default class {
 		listeners.add(listener);
 	}
 
+	/**
+	 * Remove an event listener
+	 *
+	 * @param processTag The process tag
+	 * @param event The event name
+	 * @param listener The event listener
+	 */
 	off(processTag: string, event: string, listener: EventListenerType) {
 		if (typeof processTag !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
@@ -60,11 +83,23 @@ export default class {
 		if (!listeners.size) {
 			this.#listeners.delete(key);
 
-			const message: IC2CUnsubscribe = { version, type: 'ipc.c2c.event.unsubscribe', processTag, event };
+			const message: IC2CUnsubscribe = {
+				version,
+				type: 'ipc.c2c.event.unsubscribe',
+				ipc: { instance: this.#child.instance },
+				processTag,
+				event
+			};
 			process.send(message);
 		}
 	}
 
+	/**
+	 * Event message reception
+	 *
+	 * @param message
+	 * @returns
+	 */
 	#onevent = (message: IC2CEventRoute) => {
 		// Check if message is an IPC event, otherwise just return
 		if (typeof message !== 'object' || message.type !== 'ipc.c2c.event.route') return;

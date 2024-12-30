@@ -46,6 +46,7 @@ export interface IEvent {
 export interface IC2CSubscribe {
 	version: typeof version;
 	type: 'ipc.c2c.event.subscribe';
+	ipc: { instance: string };
 	processTag: string; // The process tag as it was registered in the IPC
 	event: string;
 }
@@ -53,6 +54,7 @@ export interface IC2CSubscribe {
 export interface IC2CUnsubscribe {
 	version: typeof version;
 	type: 'ipc.c2c.event.unsubscribe';
+	ipc: { instance: string };
 	processTag: string; // The process tag as it was registered in the IPC
 	event: string;
 }

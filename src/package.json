@@ -14,6 +14,16 @@
 	"deployment": {
 		"distributions": [
 			{
+				"name": "esm",
+				"platform": "node",
+				"ports": {
+					"bundles": 4532
+				},
+				"bundles": {
+					"mode": "esm"
+				}
+			},
+			{
 				"name": "types",
 				"environment": "development",
 				"platform": "node",

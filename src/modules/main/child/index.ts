@@ -6,19 +6,23 @@ import Events from './events';
 export default class extends Actions {
 	#dispatcher: Dispatcher;
 
+	/**
+	 * The instance of the IPC module exists because a project may have multiple versions
+	 * of the IPC package installed, stemming from different project dependencies
+	 * requiring different versions of the package.
+	 */
 	#instance = uuid();
 	get instance() {
 		return this.#instance;
 	}
 
-	#events = new Events();
+	#events = new Events(this);
 	get events() {
 		return this.#events;
 	}
 
 	constructor() {
 		super();
-
 		this.#dispatcher = new Dispatcher(this, undefined);
 	}
 

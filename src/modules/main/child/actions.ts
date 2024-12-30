@@ -14,10 +14,18 @@ export default class {
 	}
 
 	constructor() {
-		process.on('message', this.#onrequest);
+		process.on('message', this.#onaction);
 	}
 
-	#exec = async (request: IActionRequest) => {
+	#onaction = (request: IActionRequest) => {
+		// Check if message is effectively an IPC request
+		if (typeof request !== 'object' || request.type !== 'ipc.action.request') return;
+
+		if (!request.id) {
+			console.error('An undefined request id received on ipc communication', request);
+			return;
+		}
+
 		const send = ({ value, error }: { value?: object; error?: string }) => {
 			const response: IActionResponse = {
 				version,
@@ -28,6 +36,7 @@ export default class {
 				response: value
 			};
 
+			error && console.error(`Error executing action "${request.action}": ${error}`);
 			process.send(response);
 		};
 
@@ -36,28 +45,10 @@ export default class {
 			return;
 		}
 
-		if (!this.#handlers.has(request.action)) {
-			send({ error: `Handler of action "${request.action}" not found` });
-			return;
-		}
-
-		const handler = this.#handlers.get(request.action);
-
-		let value;
-		try {
-			value = await handler(...request.params);
-		} catch (exc) {
-			console.error(exc);
-			send({ error: exc.message });
-			return;
-		}
-
-		send({ value });
-	};
-
-	#onrequest = (request: IActionRequest) => {
-		// Check if message is effectively an IPC request
-		if (typeof request !== 'object' || request.type !== 'ipc.action.request') return;
+		// If this action is not handled, just return, no need to send a response as it is
+		// possible that another IPC module is handling this action
+		// (this can happen when there are multiple dependencies utilizing different versions of the IPC package)
+		if (!this.#handlers.has(request.action)) return;
 
 		// Check the version of the communication protocol
 		if (request.version !== version) {
@@ -65,15 +56,14 @@ export default class {
 			console.error(error);
 			return;
 		}
-
-		if (!request.id) {
-			console.error('An undefined request id received on ipc communication', request);
-			return;
-		}
-		this.#exec(request).catch(exc => console.error(exc instanceof Error ? exc.stack : exc));
+		5;
+		const handler = this.#handlers.get(request.action);
+		handler(...request.params)
+			.then((value: any) => send({ value }))
+			.catch((exc: Error) => send({ error: exc.message }));
 	};
 
 	destroy() {
-		process.removeListener('message', this.#onrequest);
+		process.removeListener('message', this.#onaction);
 	}
 }
