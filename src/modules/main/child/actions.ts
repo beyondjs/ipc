@@ -56,9 +56,9 @@ export default class {
 			console.error(error);
 			return;
 		}
-		5;
+
 		const handler = this.#handlers.get(request.action);
-		handler(...request.params)
+		Promise.resolve(handler(...request.params))
 			.then((value: any) => send({ value }))
 			.catch((exc: Error) => send({ error: exc.message }));
 	};
