@@ -72,7 +72,10 @@ export default class {
 			}
 
 			const dispatcher = this.#dispatchers.get(target);
-			dispatcher.exec(undefined, request.action, ...request.params).then(respond);
+			dispatcher
+				.exec(undefined, request.action, ...request.params)
+				.then(value => respond({ value }))
+				.catch(error => respond({ error }));
 		}
 	};
 
