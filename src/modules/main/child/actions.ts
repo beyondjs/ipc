@@ -60,7 +60,11 @@ export default class {
 		const handler = this.#handlers.get(request.action);
 		Promise.resolve(handler(...request.params))
 			.then((value: any) => send({ value }))
-			.catch((exc: Error) => send({ error: exc.message }));
+			.catch((exc: Error) => {
+				const message = `Error found executing IPC handler "${request.action}"`;
+				console.log(message, exc.stack);
+				send({ error: `${message}: ${exc.message}` });
+			});
 	};
 
 	destroy() {
