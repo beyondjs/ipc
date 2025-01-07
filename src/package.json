@@ -2,7 +2,7 @@
 	"name": "@beyond-js/ipc",
 	"author": "BeyondJS",
 	"email": "hello@beyondjs.com",
-	"version": "0.0.10",
+	"version": "0.0.11",
 	"license": "MIT",
 	"repository": "https://github.com/beyondjs/ipc",
 	"scripts": {
@@ -37,7 +37,7 @@
 		]
 	},
 	"dependencies": {
-		"@beyond-js/pending-promise": "~0.0.3",
+		"@beyond-js/pending-promise": "~0.0.4",
 		"uuid": "^11.0.3"
 	},
 	"devDependencies": {
