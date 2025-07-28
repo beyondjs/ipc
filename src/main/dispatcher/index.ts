@@ -1,16 +1,20 @@
-const PendingPromise = require('@beyond-js/pending-promise');
+import type MainProcessHandler from '../main';
+import type ChildProcessHandler from '../child';
+import type { IResponseMessage } from '../types';
+import { PendingPromise } from '@beyond-js/pending-promise/main';
 
-module.exports = class {
+export default class Dispatcher {
 	// The process on which the actions will be executed
 	#process;
 	#container;
 
 	/**
+	 * Create a new IPC dispatcher
 	 *
 	 * @param {*} fork
 	 * @param {*} container the ipc object.
 	 */
-	constructor(fork, container) {
+	constructor(container: MainProcessHandler | ChildProcessHandler, fork: NodeJS.Process) {
 		// If it is the main process, then it is required the fork parameter
 		// with which to establish the communication
 		if (!process.send && !fork) throw new Error('Invalid parameters');
@@ -30,9 +34,8 @@ module.exports = class {
 	 * @param target {string | undefined} The target process where to execute the action
 	 * @param action {string} The name of the action being requested
 	 * @param params {*} The parameters of the action
-	 * @returns {*}
 	 */
-	exec(target, action, ...params) {
+	exec(target: string, action: string, ...params: any[]) {
 		if (!process.send && target) {
 			// Trying to execute from the main process to the main process
 			return Promise.reject(new this.#IPCError('Parameter target cannot be "main" in this context'));
@@ -57,7 +60,7 @@ module.exports = class {
 	/**
 	 * Response reception handler
 	 */
-	#onmessage = message => {
+	#onmessage = (message: IResponseMessage) => {
 		if (typeof message !== 'object' || message.request?.type !== 'ipc.response') return;
 		if (this.#container.id !== message.ipc?.instance) return;
 		if (!this.#pendings.has(message.request.id)) {
@@ -76,4 +79,4 @@ module.exports = class {
 	destroy() {
 		this.#process.removeListener('message', this.#onmessage);
 	}
-};
+}

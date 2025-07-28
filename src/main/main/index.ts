@@ -1,18 +1,22 @@
-const uuid = require('uuid').v4;
+import type { IListener } from '../types';
+import { v4 as uuid } from 'uuid';
+import Server from './server';
+import Dispatcher from '../dispatcher';
+import Events from './events';
 
-module.exports = class {
-	#dispatchers = new Map();
+export default class MainProcessHandler {
+	#dispatchers: Map<string, Dispatcher> = new Map();
 
 	#id = uuid();
 	get id() {
 		return this.#id;
 	}
 
-	#server = new (require('./server'))(this.#dispatchers);
-	handle = (action, listener) => this.#server.handle(action, listener);
-	removeHandler = action => this.#server.off(action);
+	#server = new Server(this.#dispatchers);
+	handle = (action: string, listener: IListener) => this.#server.handle(action, listener);
+	removeHandler = (action: string) => this.#server.off(action);
 
-	#events = new (require('./events'))();
+	#events = new Events();
 	get events() {
 		return this.#events;
 	}
@@ -21,21 +25,16 @@ module.exports = class {
 		this.#events.emit(...params);
 	}
 
-	register(name, fork) {
-		if (!name || !fork) {
-			throw new Error('Invalid parameters');
-		}
+	register(name: string, fork: NodeJS.Process) {
+		if (!name || !fork) throw new Error('Invalid parameters');
+		if (this.#dispatchers.has(name)) throw new Error(`Process "${name}" already registered`);
 
-		if (this.#dispatchers.has(name)) {
-			throw new Error(`Process "${name}" already registered`);
-		}
-
-		this.#dispatchers.set(name, new (require('../dispatcher'))(fork, this));
+		this.#dispatchers.set(name, new Dispatcher(this, fork));
 		this.#server.registerFork(name, fork);
 		this.#events.registerFork(name, fork);
 	}
 
-	unregister(name) {
+	unregister(name: string) {
 		if (!this.#dispatchers.has(name)) throw new Error(`Process ${name} not found`);
 		const dispatcher = this.#dispatchers.get(name);
 		dispatcher.destroy();
@@ -47,10 +46,10 @@ module.exports = class {
 	 *
 	 * @param target {string | undefined} The name of the target process
 	 * @param action {string} The name of the action being requested
-	 * @param params {object} The parameters of the action
+	 * @param params The parameters of the action
 	 * @returns {*}
 	 */
-	async exec(target, action, ...params) {
+	async exec(target: string, action: string, ...params: any[]) {
 		if (target === 'main') {
 			// It is possible to execute an action from the main process directly
 			// to an action of the main process
@@ -67,4 +66,4 @@ module.exports = class {
 	destroy() {
 		this.#dispatchers.forEach(dispatcher => dispatcher.destroy());
 	}
-};
+}

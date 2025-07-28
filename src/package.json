@@ -5,10 +5,37 @@
 	"version": "0.0.4",
 	"license": "MIT",
 	"repository": "https://github.com/beyondjs/ipc",
-	"exports": {
-		".": "./index.js"
+	"modules": {
+		"path": "main"
+	},
+	"deployment": {
+		"distributions": [
+			{
+				"name": "web",
+				"platform": "web",
+				"environment": "local",
+				"ports": {
+					"bundles": 1110
+				}
+			},
+			{
+				"name": "node",
+				"platform": "node",
+				"environment": "local",
+				"ports": {
+					"bundles": 1330
+				},
+				"ts": {
+					"compiler": "tsc"
+				}
+			}
+		]
 	},
 	"dependencies": {
-		"uuid": "^11.0.3"
+		"uuid": "^11.0.3",
+		"@beyond-js/pending-promise": "~0.0.4"
+	},
+	"devDependencies": {
+		"@types/node": "~20.11.0"
 	}
 }

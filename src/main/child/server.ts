@@ -1,15 +1,17 @@
-module.exports = class {
-	#handlers = new Map();
+import { IHandler, IExecMessage } from '../types';
 
-	handle = (action, listener) => this.#handlers.set(action, listener);
-	removeHandler = action => this.#handlers.delete(action);
+export default class Server {
+	#handlers: Map<string, IHandler> = new Map();
+
+	handle = (action: string, handler: IHandler) => this.#handlers.set(action, handler);
+	removeHandler = (action: string) => this.#handlers.delete(action);
 
 	constructor() {
 		process.on('message', this.#onmessage);
 	}
 
-	#exec = async message => {
-		const send = response => {
+	#exec = async (message: IExecMessage) => {
+		const send = (response: any) => {
 			Object.assign(response, { type: 'ipc.response', id: message.id });
 			process.send(response);
 		};
@@ -34,10 +36,10 @@ module.exports = class {
 			return;
 		}
 
-		send({ response: response });
+		send({ response });
 	};
 
-	#onmessage = message => {
+	#onmessage = (message: IExecMessage) => {
 		if (typeof message !== 'object' || message.type !== 'ipc.request') return;
 		if (!message.id) {
 			console.error('An undefined message id received on ipc communication', message);
@@ -49,4 +51,4 @@ module.exports = class {
 	destroy() {
 		process.removeListener('message', this.#onmessage);
 	}
-};
+}

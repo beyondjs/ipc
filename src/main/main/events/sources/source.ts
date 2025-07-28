@@ -1,11 +1,13 @@
-module.exports = class {
-	#sources;
-	#name;
-	#fork;
+import type Sources from '.';
+
+export default class Source {
+	#sources: Sources;
+	#name: string;
+	#fork: NodeJS.Process;
 
 	#listeners = new Set();
 
-	constructor(sources, name, fork) {
+	constructor(sources: Sources, name: string, fork: NodeJS.Process) {
 		this.#sources = sources;
 		this.#name = name;
 		this.#fork = fork;
@@ -21,7 +23,7 @@ module.exports = class {
 	 * @param event {string} The event name
 	 * @param message {*} The message to be sent
 	 */
-	emit(sourceName, event, message) {
+	emit(sourceName: string, event: string, message: any) {
 		const key = `${sourceName}|${event}`;
 		if (!this.#listeners.has(key)) return;
 
@@ -30,14 +32,14 @@ module.exports = class {
 				type: 'ipc.event.dispatch',
 				source: sourceName,
 				event: event,
-				message: message,
+				message: message
 			});
 		} catch (exc) {
 			console.warn(`Error emitting event ${key} to fork process with name "${this.#name}"`, exc.message);
 		}
 	}
 
-	#onmessage = message => {
+	#onmessage = (message: any) => {
 		if (typeof message !== 'object') return;
 
 		if (message.type === 'ipc.add.event.listener') {
@@ -82,4 +84,4 @@ module.exports = class {
 	destroy() {
 		this.#fork.removeListener('message', this.#onmessage);
 	}
-};
+}

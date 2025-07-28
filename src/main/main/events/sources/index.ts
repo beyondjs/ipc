@@ -1,15 +1,17 @@
-module.exports = class {
+import { IListener } from '../../../types';
+
+export default class Sources {
 	#sources = new Map();
 
 	// The listeners of the main process
-	#listeners;
+	#listeners: Map<string, Set<IListener>>;
 
-	constructor(listeners) {
+	constructor(listeners: Map<string, Set<IListener>>) {
 		this.#listeners = listeners;
 	}
 
 	// Private method used by the children processes to allow child-child notifications
-	emit(sourceName, event, message) {
+	emit(sourceName: string, event: string, message: any) {
 		// Emit the event to the listeners of the main process
 		const key = `${sourceName}|${event}`;
 		if (this.#listeners.has(key)) {
@@ -27,9 +29,11 @@ module.exports = class {
 		this.#sources.forEach(source => source.emit(sourceName, event, message));
 	}
 
-	register = (name, fork) => this.#sources.set(name, new (require('./source'))(this, name, fork));
+	register(name: string, fork: NodeJS.Process) {
+		this.#sources.set(name, new (require('./source'))(this, name, fork));
+	}
 
 	destroy() {
 		this.#sources.forEach(source => source.destroy());
 	}
-};
+}

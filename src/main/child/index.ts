@@ -1,21 +1,27 @@
-const IPCServer = require('./server');
-const uuid = require('uuid').v4;
+import IPCServer from './server';
+import { v4 as uuid } from 'uuid';
+import Dispatcher from '../dispatcher';
+import Events from './events';
 
-module.exports = class extends IPCServer {
-	#dispatcher;
+export default class ChildProcessHandler extends IPCServer {
 	#id = uuid();
-	#events = new (require('./events'))();
+	get id() {
+		return this.#id;
+	}
+
+	#dispatcher: Dispatcher;
+
+	#events = new Events();
 	get events() {
 		return this.#events;
 	}
 
 	constructor() {
 		super();
-
-		this.#dispatcher = new (require('../dispatcher'))(undefined, this);
+		this.#dispatcher = new Dispatcher(this);
 	}
 
-	notify(...params) {
+	notify(...params: any[]) {
 		this.#events.emit(...params);
 	}
 
@@ -25,9 +31,8 @@ module.exports = class extends IPCServer {
 	 * @param target {string | undefined} The name of the target process
 	 * @param action {string} The name of the action being requested
 	 * @param params {*} The parameters of the action
-	 * @returns {*}
 	 */
-	async exec(target, action, ...params) {
+	async exec(target: string, action: string, ...params: any[]) {
 		return await this.#dispatcher.exec(target, action, ...params);
 	}
 
@@ -36,4 +41,4 @@ module.exports = class extends IPCServer {
 		this.#events.destroy();
 		super.destroy();
 	}
-};
+}

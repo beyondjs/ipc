@@ -1,18 +1,21 @@
-module.exports = class {
+import Sources from './sources';
+import { IListener } from '../../types';
+
+export default class Events {
 	// Sources of events are the events received from the forked processes
 	#sources;
-	#listeners = new Map();
+	#listeners: Map<string, Set<IListener>> = new Map();
 
 	constructor() {
-		this.#sources = new (require('./sources'))(this.#listeners);
+		this.#sources = new Sources(this.#listeners);
 	}
 
-	on(source, event, listener) {
+	on(source: string, event: string, listener: IListener) {
 		if (typeof source !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
 		}
 
-		let listeners;
+		let listeners: Set<IListener;
 		const key = `${source}|${event}`;
 		if (this.#listeners.has(key)) {
 			listeners = this.#listeners.get(key);
@@ -23,7 +26,7 @@ module.exports = class {
 		listeners.add(listener);
 	}
 
-	off(source, event, listener) {
+	off(source: string, event: string, listener: IListener) {
 		const key = `${source}|${event}`;
 
 		let listeners;
@@ -38,11 +41,11 @@ module.exports = class {
 			return;
 		}
 
-		listeners.delete(key, listener);
+		listeners.delete(listener);
 	}
 
 	// To emit events from the main to the forked children and even to the main process
-	emit(event, message) {
+	emit(event: string, message: any) {
 		this.#sources.emit('main', event, message);
 	}
 
@@ -51,5 +54,5 @@ module.exports = class {
 	 * @param name {string} The name assigned to the forked process
 	 * @param fork {object} The forked process
 	 */
-	registerFork = (name, fork) => this.#sources.register(name, fork);
-};
+	registerFork = (name: string, fork: NodeJS.Process) => this.#sources.register(name, fork);
+}
