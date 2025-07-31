@@ -32,7 +32,6 @@
 		]
 	},
 	"dependencies": {
-		"uuid": "^11.0.3",
 		"@beyond-js/pending-promise": "~0.0.4"
 	},
 	"devDependencies": {

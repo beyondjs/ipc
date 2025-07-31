@@ -1,6 +1,6 @@
-import { IHandler, IExecMessage } from '../types';
+import { IHandler, IRequestMessage } from '../types';
 
-export default class Server {
+export default class Actions {
 	#handlers: Map<string, IHandler> = new Map();
 
 	handle = (action: string, handler: IHandler) => this.#handlers.set(action, handler);
@@ -10,7 +10,7 @@ export default class Server {
 		process.on('message', this.#onmessage);
 	}
 
-	async #exec(message: IExecMessage): Promise<void> {
+	async #exec(message: IRequestMessage): Promise<void> {
 		const send = (response: any) => {
 			Object.assign(response, { type: 'ipc.response', id: message.id });
 			process.send(response);
@@ -39,7 +39,7 @@ export default class Server {
 		send({ response });
 	}
 
-	#onmessage = (message: IExecMessage) => {
+	#onmessage = (message: IRequestMessage) => {
 		if (typeof message !== 'object' || message.type !== 'ipc.request') return;
 		if (!message.id) {
 			console.error('An undefined message id received on ipc communication', message);

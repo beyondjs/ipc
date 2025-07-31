@@ -1,18 +1,30 @@
-import type Server from '..';
-import type Dispatcher from '../../../dispatcher';
+import type MainProcessHandler from '../..';
 import type { IRequestMessage, IResponseMessage } from '../../../types';
+import Dispatcher from '../../../dispatcher';
 
-export default class Listener {
+export default class ChildProcessActionsHandler {
+	// This is used to execute actions that are meant for the main process
+	#main: MainProcessHandler;
+
+	// The forked process that this handler is associated with
 	#fork: NodeJS.Process;
-	#server: Server;
-	#dispatchers: Map<string, Dispatcher>;
 
-	// The bridge function that allows to execute actions received from a child process
+	// The dispatcher is used to execute actions that are meant for other child processes
+	#dispatcher: Dispatcher;
+
+	constructor(main: MainProcessHandler, fork: NodeJS.Process) {
+		this.#fork = fork;
+
+		this.#dispatcher = new Dispatcher(main, fork);
+		fork.on('message', this.#onmessage);
+	}
+
+	// The router function that allows to execute actions received from a child process
 	// and that are executed in another child process
 	// The main ipc manager provides the bridge function, as it has the dispatchers
 	// to execute actions on the forked processes, and the bridge is the function
 	// that knows to which child process is the request being redirected
-	#bridge = async (message): Promise<void> => {
+	#route = async (message: IRequestMessage): Promise<void> => {
 		const { target } = message;
 		if (!this.#dispatchers.has(target)) {
 			return { error: { message: `Target "${message.target}" not found` } };
@@ -23,44 +35,31 @@ export default class Listener {
 		return { response };
 	};
 
-	constructor(server: Server, fork: NodeJS.Process, dispatchers: Map<string, Dispatcher>) {
-		this.#server = server;
-		this.#fork = fork;
-		this.#dispatchers = dispatchers;
-		fork.on('message', this.#onmessage);
-	}
-
-	#exec = async (message: IRequestMessage) => {
+	async #exec(message: IRequestMessage) {
 		const { id } = message;
 
 		const send = ({ response, error }: { response?: any; error?: string }) => {
-			const message: IResponseMessage = Object.assign({ response, error }, { type: 'ipc.response', id });
+			const message: IResponseMessage = Object.assign({ type: 'ipc.response', id, response, error });
 			this.#fork.send(message);
 		};
 
 		if (!message.action) {
-			send({ error: 'Property action is undefined' });
-			return;
+			throw new Error(`Property 'action' must be set on message "${JSON.stringify(message)}"`);
 		}
 
 		if (message.target === 'main') {
-			if (!this.#server.has(message.action)) {
-				send({ error: { message: `Action "${message.action}" not found` } });
-				return;
-			}
-
 			let response;
 			try {
-				response = await this.#server.exec(message.action, ...message.params);
+				response = await this.#main.exec(message.action, ...message.params);
 			} catch (exc) {
 				send({ error: { message: exc.message, stack: exc.stack } });
 				return;
 			}
 			send({ response });
 		} else {
-			send(await this.#bridge(message));
+			send(await this.#route(message));
 		}
-	};
+	}
 
 	#onmessage = (message: IRequestMessage) => {
 		if (typeof message !== 'object' || message.type !== 'ipc.request') return;
@@ -68,6 +67,7 @@ export default class Listener {
 			console.error('An undefined message id received on ipc communication', message);
 			return;
 		}
+
 		this.#exec(message).catch(exc => console.error(exc instanceof Error ? exc.stack : exc));
 	};
 

@@ -1,7 +1,8 @@
 import { IListener } from '../../../types';
+import OriginHandler from './origin';
 
-export default class Sources {
-	#sources = new Map();
+export default class Router {
+	#origins: Map<string, OriginHandler> = new Map();
 
 	// The listeners of the main process
 	#listeners: Map<string, Set<IListener>>;
@@ -11,9 +12,9 @@ export default class Sources {
 	}
 
 	// Private method used by the children processes to allow child-child notifications
-	emit(sourceName: string, event: string, message: any) {
+	emit(originName: string, event: string, message: any) {
 		// Emit the event to the listeners of the main process
-		const key = `${sourceName}|${event}`;
+		const key = `${originName}|${event}`;
 		if (this.#listeners.has(key)) {
 			const listeners = this.#listeners.get(key);
 			listeners.forEach(listener => {
@@ -26,14 +27,14 @@ export default class Sources {
 		}
 
 		// Emit the events to the children processes
-		this.#sources.forEach(source => source.emit(sourceName, event, message));
+		this.#origins.forEach(origin => origin.emit(originName, event, message));
 	}
 
 	register(name: string, fork: NodeJS.Process) {
-		this.#sources.set(name, new (require('./source'))(this, name, fork));
+		this.#origins.set(name, new OriginHandler(this, name, fork));
 	}
 
 	destroy() {
-		this.#sources.forEach(source => source.destroy());
+		this.#origins.forEach(origin => origin.destroy());
 	}
 }

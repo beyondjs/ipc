@@ -1,13 +1,16 @@
-import type Dispatcher from '../../dispatcher';
-import { IHandler } from '../../types';
-import Listeners from './listeners';
+import type MainProcessHandler from '..';
+import type { IHandler } from '../../types';
+import Dispatcher from '../../dispatcher';
+import Router from './router';
 
-export default class Server {
-	#listeners: Listeners;
+export default class Actions {
+	#main: MainProcessHandler;
 	#handlers: Map<string, IHandler> = new Map();
+	#router: Router;
 
-	constructor(dispatchers: Map<string, Dispatcher>) {
-		this.#listeners = new Listeners(this, dispatchers);
+	constructor(main: MainProcessHandler) {
+		this.#main = main;
+		this.#router = new Router(main);
 	}
 
 	handle = (action: string, handler: IHandler) => this.#handlers.set(action, handler);
@@ -20,8 +23,15 @@ export default class Server {
 	 * @param name {string} The name assigned to the forked process
 	 * @param fork {object} The forked process
 	 */
-	registerFork = (name: string, fork: NodeJS.Process) => this.#listeners.register(name, fork);
+	registerFork = (name: string, fork: NodeJS.Process) => this.#router.register(name, fork);
 
+	/**
+	 * Execute an action whose recipient is the main process
+	 *
+	 * @param action {string} The name of the action to execute
+	 * @param params {...any[]} The parameters to pass to the action
+	 * @returns any The response of the action
+	 */
 	async exec(action: string, ...params: any[]): Promise<any> {
 		if (!action) throw new Error(`Action parameter must be set`);
 		if (!this.#handlers.has(action)) throw new Error(`Action "${action}" not set`);
@@ -31,6 +41,6 @@ export default class Server {
 	}
 
 	destroy() {
-		this.#listeners.destroy();
+		this.#router.destroy();
 	}
 }

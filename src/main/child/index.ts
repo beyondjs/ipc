@@ -1,15 +1,21 @@
-import IPCServer from './server';
-import { v4 as uuid } from 'uuid';
+import type { IProcessHandler, IListener } from '../types';
+import Actions from './actions';
+import { randomUUID } from 'crypto';
 import Dispatcher from '../dispatcher';
 import Events from './events';
 
-export default class ChildProcessHandler extends IPCServer {
-	#id = uuid();
+export default class ChildProcessHandler implements IProcessHandler {
+	#id = randomUUID();
 	get id() {
 		return this.#id;
 	}
 
 	#dispatcher: Dispatcher;
+
+	#actions = new Actions();
+	get actions() {
+		return this.#actions;
+	}
 
 	#events = new Events();
 	get events() {
@@ -17,12 +23,29 @@ export default class ChildProcessHandler extends IPCServer {
 	}
 
 	constructor() {
-		super();
 		this.#dispatcher = new Dispatcher(this);
 	}
 
-	notify(...params: any[]) {
-		this.#events.emit(...params);
+	on(origin: string, event: string, listener: IListener) {
+		this.#events.on(origin, event, listener);
+	}
+
+	off(origin: string, event: string, listener: IListener) {
+		this.#events.off(origin, event, listener);
+	}
+
+	emit(event: string, data: any) {
+		this.#events.emit(event, data);
+	}
+
+	/**
+	 * DEPRECATED: Use `emit` or `events.emit` instead.
+	 *
+	 * @param event {string} The name of the event to emit
+	 * @param data
+	 */
+	notify(event: string, data: any) {
+		this.#events.emit(event, data);
 	}
 
 	/**
@@ -32,13 +55,13 @@ export default class ChildProcessHandler extends IPCServer {
 	 * @param action {string} The name of the action being requested
 	 * @param params {*} The parameters of the action
 	 */
-	async exec(target: string, action: string, ...params: any[]) {
+	async exec(target: string, action: string, ...params: any[]): Promise<any> {
 		return await this.#dispatcher.exec(target, action, ...params);
 	}
 
 	destroy() {
 		this.#dispatcher.destroy();
 		this.#events.destroy();
-		super.destroy();
+		this.#actions.destroy();
 	}
 }
