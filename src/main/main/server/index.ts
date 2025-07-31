@@ -1,15 +1,14 @@
 import type Dispatcher from '../../dispatcher';
 import { IHandler } from '../../types';
+import Listeners from './listeners';
 
 export default class Server {
-	// Listeners of the forked processes messages
-	#listeners;
+	#listeners: Listeners;
+	#handlers: Map<string, IHandler> = new Map();
 
 	constructor(dispatchers: Map<string, Dispatcher>) {
-		this.#listeners = new (require('./listeners'))(this, dispatchers);
+		this.#listeners = new Listeners(this, dispatchers);
 	}
-
-	#handlers: Map<string, IHandler> = new Map();
 
 	handle = (action: string, handler: IHandler) => this.#handlers.set(action, handler);
 	off = (action: string) => this.#handlers.delete(action);

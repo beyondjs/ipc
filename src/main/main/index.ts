@@ -1,4 +1,4 @@
-import type { IListener } from '../types';
+import type { IListener, IHandler } from '../types';
 import { v4 as uuid } from 'uuid';
 import Server from './server';
 import Dispatcher from '../dispatcher';
@@ -13,7 +13,7 @@ export default class MainProcessHandler {
 	}
 
 	#server = new Server(this.#dispatchers);
-	handle = (action: string, listener: IListener) => this.#server.handle(action, listener);
+	handle = (action: string, handler: IHandler) => this.#server.handle(action, handler);
 	removeHandler = (action: string) => this.#server.off(action);
 
 	#events = new Events();
@@ -47,7 +47,6 @@ export default class MainProcessHandler {
 	 * @param target {string | undefined} The name of the target process
 	 * @param action {string} The name of the action being requested
 	 * @param params The parameters of the action
-	 * @returns {*}
 	 */
 	async exec(target: string, action: string, ...params: any[]) {
 		if (target === 'main') {

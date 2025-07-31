@@ -1,12 +1,14 @@
 import type MainProcessHandler from '../main';
 import type ChildProcessHandler from '../child';
 import type { IResponseMessage } from '../types';
+import IPCError from '../error';
 import { PendingPromise } from '@beyond-js/pending-promise/main';
 
 export default class Dispatcher {
-	// The process on which the actions will be executed
-	#process;
-	#container;
+	#process: NodeJS.Process;
+
+	// Can be the main process or a child process handler
+	#container: MainProcessHandler | ChildProcessHandler;
 
 	/**
 	 * Create a new IPC dispatcher
@@ -18,12 +20,12 @@ export default class Dispatcher {
 		// If it is the main process, then it is required the fork parameter
 		// with which to establish the communication
 		if (!process.send && !fork) throw new Error('Invalid parameters');
+
 		this.#container = container;
+
 		this.#process = fork ? fork : process;
 		this.#process.on('message', this.#onmessage);
 	}
-
-	#IPCError = require('../error');
 
 	#id = 0;
 	#pendings = new Map();
@@ -38,7 +40,7 @@ export default class Dispatcher {
 	exec(target: string, action: string, ...params: any[]) {
 		if (!process.send && target) {
 			// Trying to execute from the main process to the main process
-			return Promise.reject(new this.#IPCError('Parameter target cannot be "main" in this context'));
+			return Promise.reject(new IPCError('Parameter target cannot be "main" in this context'));
 		}
 
 		const id = ++this.#id;
@@ -71,7 +73,7 @@ export default class Dispatcher {
 		const pending = this.#pendings.get(message.request.id);
 		const { response, error } = message;
 		error && console.error(error instanceof Error || error.stack ? error.stack : error);
-		error ? pending.reject(new this.#IPCError(error)) : pending.resolve(response);
+		error ? pending.reject(new IPCError(error)) : pending.resolve(response);
 
 		this.#pendings.delete(message.request.id);
 	};

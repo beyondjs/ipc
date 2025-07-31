@@ -39,7 +39,7 @@ child.events.emit('ready');
 
 ### Main Process
 
--   `handle(action: string, listener: Function)`: Register a handler for an action
+-   `handle(action: string, handler: Function)`: Register a handler for an action
 -   `removeHandler(action: string)`: Remove a handler for an action
 -   `register(name: string, fork: ChildProcess)`: Register a child process
 -   `unregister(name: string)`: Unregister a child process

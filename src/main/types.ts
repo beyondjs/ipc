@@ -2,27 +2,27 @@ export /*bundle*/ type IListener = (data: any) => void;
 
 export /*bundle*/ type IHandler = (...args: any[]) => any;
 
-export /*bundle*/ type IEvent = {
-	source: string;
-	event: string;
-	listener: IListener;
-};
-
-export /*bundle*/ type IEventMessage = {
-	type: 'ipc.event.dispatch';
-	source: string;
-	event: string;
-	data: any;
-};
-
 export /*bundle*/ type IEventSubscription = {
 	type: 'ipc.add.event.listener' | 'ipc.remove.event.listener';
 	source: string;
 	event: string;
 };
 
+export /*bundle*/ type IEvent = {
+	source: string;
+	event: string;
+	listener: IListener;
+};
+
 export /*bundle*/ type IEventEmit = {
 	type: 'ipc.event.emit';
+	event: string;
+	data: any;
+};
+
+export /*bundle*/ type IEventMessage = {
+	type: 'ipc.event.dispatch';
+	source: string;
 	event: string;
 	data: any;
 };

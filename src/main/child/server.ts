@@ -10,7 +10,7 @@ export default class Server {
 		process.on('message', this.#onmessage);
 	}
 
-	#exec = async (message: IExecMessage) => {
+	async #exec(message: IExecMessage): Promise<void> {
 		const send = (response: any) => {
 			Object.assign(response, { type: 'ipc.response', id: message.id });
 			process.send(response);
@@ -37,7 +37,7 @@ export default class Server {
 		}
 
 		send({ response });
-	};
+	}
 
 	#onmessage = (message: IExecMessage) => {
 		if (typeof message !== 'object' || message.type !== 'ipc.request') return;

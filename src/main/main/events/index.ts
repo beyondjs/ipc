@@ -3,7 +3,7 @@ import { IListener } from '../../types';
 
 export default class Events {
 	// Sources of events are the events received from the forked processes
-	#sources;
+	#sources: Sources;
 	#listeners: Map<string, Set<IListener>> = new Map();
 
 	constructor() {
@@ -15,7 +15,7 @@ export default class Events {
 			throw new Error('Invalid parameters');
 		}
 
-		let listeners: Set<IListener;
+		let listeners: Set<IListener>;
 		const key = `${source}|${event}`;
 		if (this.#listeners.has(key)) {
 			listeners = this.#listeners.get(key);

@@ -1,7 +1,7 @@
 # @beyond-js/ipc
 
-A powerful Inter-Process Communication (IPC) library for Node.js applications, facilitating seamless communication
-between the main process and child processes.
+Inter-Process Communication (IPC) library for Node.js applications, facilitating seamless communication between the main
+process and child processes.
 
 ## Installation
 
