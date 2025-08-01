@@ -2,9 +2,26 @@ import type MainProcessHandler from '../..';
 import type { IRequestMessage, IResponseMessage } from '../../../types';
 import Dispatcher from '../../../dispatcher';
 
-export default class ChildProcessActionsHandler {
-	// This is used to execute actions that are meant for the main process
+/**
+ * Handles IPC messages received from a specific child process.
+ *
+ * This class is instantiated once per child process and is responsible for:
+ * - Executing actions targeted at the main process.
+ * - Forwarding actions to other child processes via a dispatcher.
+ *
+ * All incoming messages from the child process are listened to via `process.on('message')`,
+ * and are filtered to detect `ipc.request` messages. Based on the `target`, the message is either:
+ * - Executed locally (in the main process).
+ * - Routed to another child process through the dispatchers registry in the main process.
+ */
+export default class ChildRouter {
 	#main: MainProcessHandler;
+
+	// The name of the child process
+	#name: string;
+	get name() {
+		return this.#name;
+	}
 
 	// The forked process that this handler is associated with
 	#fork: NodeJS.Process;
@@ -12,66 +29,89 @@ export default class ChildProcessActionsHandler {
 	// The dispatcher is used to execute actions that are meant for other child processes
 	#dispatcher: Dispatcher;
 
-	constructor(main: MainProcessHandler, fork: NodeJS.Process) {
+	constructor(main: MainProcessHandler, name: string, fork: NodeJS.Process) {
+		this.#main = main;
+		this.#name = name;
 		this.#fork = fork;
 
 		this.#dispatcher = new Dispatcher(main, fork);
 		fork.on('message', this.#onmessage);
 	}
 
-	// The router function that allows to execute actions received from a child process
-	// and that are executed in another child process
-	// The main ipc manager provides the bridge function, as it has the dispatchers
-	// to execute actions on the forked processes, and the bridge is the function
-	// that knows to which child process is the request being redirected
-	#route = async (message: IRequestMessage): Promise<void> => {
-		const { target } = message;
-		if (!this.#dispatchers.has(target)) {
-			return { error: { message: `Target "${message.target}" not found` } };
-		}
+	/**
+	 * Executes an action in the child process
+	 *
+	 * @param action {string} The name of the action to execute
+	 * @param params {...any[]} The parameters to pass to the action
+	 * @returns
+	 */
+	dispatch(action: string, ...params: any[]): Promise<any> {
+		return this.#dispatcher.exec(this.#name, action, ...params);
+	}
 
-		const dispatcher = this.#dispatchers.get(target);
-		const response = await dispatcher.exec(undefined, message.action, ...message.params);
-		return { response };
-	};
-
+	/**
+	 * Executes and responds an IPC request message targeting the child process.
+	 *
+	 * @param message {IRequestMessage} The request message to execute
+	 */
 	async #exec(message: IRequestMessage) {
-		const { id } = message;
+		const { id, target, action, params } = message;
 
-		const send = ({ response, error }: { response?: any; error?: string }) => {
+		const respond = (data: { response?: any; error?: string | Error }) => {
+			const { response, error } = ((): { response?: any; error?: ErrorType } => {
+				if (data.error) {
+					if (typeof data.error === 'string') {
+						return { error: data.error };
+					}
+
+					if (!(data.error instanceof Error)) {
+						throw new Error(`Invalid error type: ${typeof data.error}`);
+					}
+
+					const { message, stack } = data.error;
+					return { error: { message, stack } };
+				}
+
+				if (!data.response) return { response: data.response };
+			})();
+
 			const message: IResponseMessage = Object.assign({ type: 'ipc.response', id, response, error });
 			this.#fork.send(message);
 		};
 
-		if (!message.action) {
-			throw new Error(`Property 'action' must be set on message "${JSON.stringify(message)}"`);
+		if (!target || !action) {
+			respond({ error: `Properties 'target' and 'action' must be set on message "${JSON.stringify(message)}"` });
+			return;
 		}
 
-		if (message.target === 'main') {
+		// Check if the target is the main process or another child process
+		if (target === 'main') {
 			let response;
 			try {
-				response = await this.#main.exec(message.action, ...message.params);
-			} catch (exc) {
-				send({ error: { message: exc.message, stack: exc.stack } });
+				response = await this.#main.actions.exec(action, ...params);
+			} catch (error) {
+				respond({ error });
 				return;
 			}
-			send({ response });
+			respond({ response });
 		} else {
-			send(await this.#route(message));
+			respond(await this.#main.actions.dispatch(target, action, ...params));
 		}
 	}
 
 	#onmessage = (message: IRequestMessage) => {
 		if (typeof message !== 'object' || message.type !== 'ipc.request') return;
 		if (!message.id) {
+			// If no id is provided, we cannot respond to this message, so just log an error
 			console.error('An undefined message id received on ipc communication', message);
 			return;
 		}
 
-		this.#exec(message).catch(exc => console.error(exc instanceof Error ? exc.stack : exc));
+		this.#exec(message).catch((exc: any) => console.error(exc instanceof Error ? exc.stack : exc));
 	};
 
 	destroy() {
 		this.#fork.removeListener('message', this.#onmessage);
+		this.#dispatcher.destroy();
 	}
 }

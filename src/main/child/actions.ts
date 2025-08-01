@@ -1,4 +1,4 @@
-import { IHandler, IRequestMessage } from '../types';
+import { IHandler, IRequestMessage, IResponseMessage } from '../types';
 
 export default class Actions {
 	#handlers: Map<string, IHandler> = new Map();
@@ -11,32 +11,34 @@ export default class Actions {
 	}
 
 	async #exec(message: IRequestMessage): Promise<void> {
-		const send = (response: any) => {
-			Object.assign(response, { type: 'ipc.response', id: message.id });
+		const { id, action, params } = message;
+
+		const respond = (data: any) => {
+			const response: IResponseMessage = { type: 'ipc.response', request: id };
 			process.send(response);
 		};
 
-		if (!message.action) {
-			send({ error: 'Property action is undefined' });
+		if (!action) {
+			respond({ error: 'Property action must be set' });
 			return;
 		}
 
-		if (!this.#handlers.has(message.action)) {
-			send({ error: `Handler of action "${message.action}" not found` });
+		if (!this.#handlers.has(action)) {
+			respond({ error: `No handler registered for action "${action}"` });
 			return;
 		}
 
 		const handler = this.#handlers.get(message.action);
 
-		let response;
+		let data;
 		try {
-			response = await handler(...message.params);
+			data = await handler(...message.params);
 		} catch (exc) {
-			send({ error: { message: exc.message, stack: exc.stack } });
+			respond({ error: { message: exc.message, stack: exc.stack } });
 			return;
 		}
 
-		send({ response });
+		respond({ data });
 	}
 
 	#onmessage = (message: IRequestMessage) => {

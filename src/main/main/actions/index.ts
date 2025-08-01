@@ -1,15 +1,17 @@
 import type MainProcessHandler from '..';
 import type { IHandler } from '../../types';
-import Dispatcher from '../../dispatcher';
 import Router from './router';
 
 export default class Actions {
-	#main: MainProcessHandler;
+	// The handlers map is used to store the actions of the main process
 	#handlers: Map<string, IHandler> = new Map();
+
 	#router: Router;
+	get router() {
+		return this.#router;
+	}
 
 	constructor(main: MainProcessHandler) {
-		this.#main = main;
 		this.#router = new Router(main);
 	}
 
@@ -25,6 +27,10 @@ export default class Actions {
 	 */
 	registerFork = (name: string, fork: NodeJS.Process) => this.#router.register(name, fork);
 
+	async dispatch(target: string, action: string, ...params: any[]): Promise<any> {
+		return await this.#router.dispatch(target, action, ...params);
+	}
+
 	/**
 	 * Execute an action whose recipient is the main process
 	 *
@@ -33,10 +39,9 @@ export default class Actions {
 	 * @returns any The response of the action
 	 */
 	async exec(action: string, ...params: any[]): Promise<any> {
-		if (!action) throw new Error(`Action parameter must be set`);
-		if (!this.#handlers.has(action)) throw new Error(`Action "${action}" not set`);
+		if (!action) throw new Error(`Invalid parameters: 'action' is required`);
+		if (!this.#handlers.has(action)) throw new Error(`No handler registered for action "${action}"`);
 
-		// Execute the action
 		return await this.#handlers.get(action)(...params);
 	}
 

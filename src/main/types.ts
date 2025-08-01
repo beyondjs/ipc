@@ -88,6 +88,8 @@ export /*bundle*/ type IRequestMessage = {
 	params: any[];
 };
 
+export /*bundle*/ type ErrorResponseType = string | { message: string; stack: string };
+
 /**
  * Response to an action execution request.
  * Sent back to the process that initiated the request.
@@ -99,13 +101,11 @@ export /*bundle*/ type IResponseMessage = {
 	/** ID of the original request being responded to */
 	request: string;
 
-	ipc?: { instance: string };
-
 	/** Returned result of the action execution */
-	response?: any;
+	data?: any;
 
 	/** Error information if the action failed */
-	error?: { message: string; stack?: string };
+	error?: ErrorResponseType;
 };
 
 export interface IProcessHandler {

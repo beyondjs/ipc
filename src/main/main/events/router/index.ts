@@ -11,10 +11,9 @@ export default class Router {
 		this.#listeners = listeners;
 	}
 
-	// Private method used by the children processes to allow child-child notifications
-	emit(originName: string, event: string, message: any) {
+	emit(origin: string, event: string, message: any) {
 		// Emit the event to the listeners of the main process
-		const key = `${originName}|${event}`;
+		const key = `${origin}|${event}`;
 		if (this.#listeners.has(key)) {
 			const listeners = this.#listeners.get(key);
 			listeners.forEach(listener => {
@@ -26,11 +25,14 @@ export default class Router {
 			});
 		}
 
-		// Emit the events to the children processes
-		this.#origins.forEach(origin => origin.emit(originName, event, message));
+		this.#origins.forEach(origin => origin.emit(origin, event, message));
 	}
 
 	register(name: string, fork: NodeJS.Process) {
+		if (this.#origins.has(name)) {
+			throw new Error(`Child process "${name}" already registered`);
+		}
+
 		this.#origins.set(name, new OriginHandler(this, name, fork));
 	}
 

@@ -1,14 +1,14 @@
-import type Sources from '.';
+import type Router from '.';
 
 export default class Source {
-	#sources: Sources;
+	#router: Router;
 	#name: string;
 	#fork: NodeJS.Process;
 
 	#listeners = new Set();
 
-	constructor(sources: Sources, name: string, fork: NodeJS.Process) {
-		this.#sources = sources;
+	constructor(sources: Router, name: string, fork: NodeJS.Process) {
+		this.#router = sources;
 		this.#name = name;
 		this.#fork = fork;
 
@@ -17,23 +17,18 @@ export default class Source {
 
 	/**
 	 * Dispatch the event if the forked process is registered to it
-	 * The execution of this method is made by the index.js file (the sources collection)
+	 * The execution of this method is made by the router
 	 *
-	 * @param sourceName {string} The name of the process that is sending the event
+	 * @param origin {string} The name of the process that is sending the event
 	 * @param event {string} The event name
 	 * @param message {*} The message to be sent
 	 */
-	emit(sourceName: string, event: string, message: any) {
-		const key = `${sourceName}|${event}`;
+	emit(origin: string, event: string, message: any): void {
+		const key = `${origin}|${event}`;
 		if (!this.#listeners.has(key)) return;
 
 		try {
-			this.#fork.send({
-				type: 'ipc.event.dispatch',
-				source: sourceName,
-				event: event,
-				message: message
-			});
+			this.#fork.send({ type: 'ipc.event.dispatch', origin, event: event, message: message });
 		} catch (exc) {
 			console.warn(`Error emitting event ${key} to fork process with name "${this.#name}"`, exc.message);
 		}
@@ -77,7 +72,7 @@ export default class Source {
 			// This is a method exposed by the sources collection (index.js file)
 			// This method will iterate over the sources to dispatch the event to the
 			// forked processes that are attached to the event
-			this.#sources.emit(this.#name, message.event, message.message);
+			this.#router.emit(this.#name, message.event, message.message);
 		}
 	};
 

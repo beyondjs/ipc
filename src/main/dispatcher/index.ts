@@ -3,6 +3,7 @@ import type ChildProcessHandler from '../child';
 import type { IResponseMessage } from '../types';
 import IPCError from '../error';
 import { PendingPromise } from '@beyond-js/pending-promise/main';
+import { randomUUID } from 'crypto';
 
 /**
  * Sends IPC action requests and routes responses across processes.
@@ -46,7 +47,6 @@ export default class Dispatcher {
 		this.#process.on('message', this.#onmessage);
 	}
 
-	#id = 0;
 	#pendings = new Map();
 
 	/**
@@ -62,7 +62,7 @@ export default class Dispatcher {
 			return Promise.reject(new IPCError('Parameter target cannot be "main" in this context'));
 		}
 
-		const id = ++this.#id;
+		const id = randomUUID();
 		const promise: PendingPromise<any> = new PendingPromise();
 
 		const rq = {
@@ -93,9 +93,9 @@ export default class Dispatcher {
 		}
 
 		const pending = this.#pendings.get(message.request);
-		const { response, error } = message;
+		const { data, error } = message;
 		error && console.error(error instanceof Error || error.stack ? error.stack : error);
-		error ? pending.reject(new IPCError(error)) : pending.resolve(response);
+		error ? pending.reject(new IPCError(error)) : pending.resolve(data);
 
 		this.#pendings.delete(message.request);
 	};
