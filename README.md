@@ -34,10 +34,8 @@ npm install @beyond-js/ipc
 
 ```ts
 import { ipc } from '@beyond-js/ipc/main';
+import { ipc } from '@beyond-js/ipc/child';
 ```
-
-The imported ipc object automatically resolves to the correct handler depending on the process context: • In the main
-process, ipc is an instance of MainProcessHandler. • In a child process, ipc is an instance of ChildProcessHandler.
 
 ⸻
 
@@ -93,7 +91,3 @@ ipc.unhandle('get-time');
 License
 
 MIT
-
-```
-
-```
