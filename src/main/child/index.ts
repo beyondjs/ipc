@@ -12,17 +12,19 @@ export default class ChildProcessHandler implements IProcessHandler {
 
 	#dispatcher: Dispatcher;
 
-	#actions = new Actions();
+	#actions: Actions;
 	get actions() {
 		return this.#actions;
 	}
 
-	#events = new Events();
+	#events: Events;
 	get events() {
 		return this.#events;
 	}
 
 	constructor() {
+		this.#actions = new Actions(this);
+		this.#events = new Events();
 		this.#dispatcher = new Dispatcher(this);
 	}
 

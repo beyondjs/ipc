@@ -11,19 +11,17 @@
 	"deployment": {
 		"distributions": [
 			{
-				"name": "web",
-				"platform": "web",
-				"environment": "local",
+				"name": "node",
+				"platform": "node",
 				"ports": {
 					"bundles": 1110
 				}
 			},
 			{
-				"name": "node",
+				"name": "node-ts",
 				"platform": "node",
-				"environment": "local",
 				"ports": {
-					"bundles": 1330
+					"bundles": 1111
 				},
 				"ts": {
 					"compiler": "tsc"

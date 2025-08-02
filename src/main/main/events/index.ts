@@ -10,6 +10,20 @@ export default class Events {
 		this.#router = new Router(this.#listeners);
 	}
 
+	/**
+	 * Register a forked child process to enable events routing.
+	 *
+	 * @param name - Unique name assigned to the forked process.
+	 * @param fork - The child process (fork) to register.
+	 */
+	register(name: string, fork: NodeJS.Process) {
+		this.#router.register(name, fork);
+	}
+
+	unregister(name: string) {
+		this.#router.unregister(name);
+	}
+
 	on(origin: string, event: string, listener: IListener) {
 		if (typeof origin !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error('Invalid parameters');
@@ -48,11 +62,4 @@ export default class Events {
 	emit(event: string, message: any) {
 		this.#router.emit('main', event, message);
 	}
-
-	/**
-	 * Register a fork process to hear for actions requests
-	 * @param name {string} The name assigned to the forked process
-	 * @param fork {object} The forked process
-	 */
-	registerFork = (name: string, fork: NodeJS.Process) => this.#router.register(name, fork);
 }

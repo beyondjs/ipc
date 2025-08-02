@@ -1,6 +1,6 @@
 import type Router from '.';
 
-export default class Source {
+export default class OriginHandler {
 	#router: Router;
 	#name: string;
 	#fork: NodeJS.Process;

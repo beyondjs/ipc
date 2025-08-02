@@ -1,7 +1,7 @@
 import type MainProcessHandler from '../main';
 import type ChildProcessHandler from '../child';
 import type { IResponseMessage } from '../types';
-import IPCError from '../error';
+import IPCError from './error';
 import { PendingPromise } from '@beyond-js/pending-promise/main';
 import { randomUUID } from 'crypto';
 
@@ -59,7 +59,7 @@ export default class Dispatcher {
 	exec(target: string, action: string, ...params: any[]) {
 		if (!process.send && target) {
 			// Trying to execute from the main process to the main process
-			return Promise.reject(new IPCError('Parameter target cannot be "main" in this context'));
+			return Promise.reject(new Error('Parameter target cannot be "main" in this context'));
 		}
 
 		const id = randomUUID();
@@ -84,19 +84,26 @@ export default class Dispatcher {
 		// Assure the message is an IPC response
 		if (typeof message !== 'object' || message.type !== 'ipc.response') return;
 
-		// Check if the message is for this instance
-		// This is important when multiple instances (different versions of the ipc package) are installed
+		// Ignore the message if it was not intended for this IPC instance.
+		// This ensures that in environments with multiple IPC versions or instances loaded,
+		// only the matching dispatcher processes the response.
 		if (this.#container.id !== message.ipc?.instance) return;
+
 		if (!this.#pendings.has(message.request)) {
 			console.error('Response message id is invalid', message);
 			return;
 		}
 
+		// Resolve the pending promise with the response data or reject it with an error
 		const pending = this.#pendings.get(message.request);
-		const { data, error } = message;
-		error && console.error(error instanceof Error || error.stack ? error.stack : error);
-		error ? pending.reject(new IPCError(error)) : pending.resolve(data);
+		if (message.error) {
+			pending.reject(new IPCError(message.error));
+		} else {
+			const { data } = message;
+			pending.resolve(data);
+		}
 
+		// Remove the pending promise from the map
 		this.#pendings.delete(message.request);
 	};
 

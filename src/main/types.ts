@@ -88,7 +88,7 @@ export /*bundle*/ type IRequestMessage = {
 	params: any[];
 };
 
-export /*bundle*/ type ErrorResponseType = string | { message: string; stack: string };
+export /*bundle*/ type ErrorResponseType = { name: string; message: string; stack: string };
 
 /**
  * Response to an action execution request.
@@ -100,6 +100,17 @@ export /*bundle*/ type IResponseMessage = {
 
 	/** ID of the original request being responded to */
 	request: string;
+
+	/**
+	 * This is used to distinguish between multiple versions or instances of the IPC system
+	 * running within the same runtime environment. For example, in complex dependency trees
+	 * where different packages may include different versions of the IPC module, this ensures
+	 * that a response is only processed by the correct instance that initiated the request.
+	 *
+	 * If provided, the receiving dispatcher will verify that the `instance` value matches its own
+	 * before resolving the corresponding request.
+	 */
+	ipc: { instance: string };
 
 	/** Returned result of the action execution */
 	data?: any;

@@ -25,7 +25,7 @@ export default class Router {
 			});
 		}
 
-		this.#origins.forEach(origin => origin.emit(origin, event, message));
+		this.#origins.forEach(handler => handler.emit(origin, event, message));
 	}
 
 	register(name: string, fork: NodeJS.Process) {
@@ -34,6 +34,16 @@ export default class Router {
 		}
 
 		this.#origins.set(name, new OriginHandler(this, name, fork));
+	}
+
+	unregister(name: string) {
+		if (!this.#origins.has(name)) {
+			throw new Error(`Child process "${name}" not found`);
+		}
+
+		const origin = this.#origins.get(name);
+		origin.destroy();
+		this.#origins.delete(name);
 	}
 
 	destroy() {

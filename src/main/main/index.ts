@@ -51,15 +51,15 @@ export default class MainProcessHandler implements IProcessHandler {
 	register(name: string, fork: NodeJS.Process) {
 		if (!name || !fork) throw new Error('Invalid parameters');
 
-		this.#actions.registerFork(name, fork);
-		this.#events.registerFork(name, fork);
+		this.#actions.register(name, fork);
+		this.#events.register(name, fork);
 	}
 
 	unregister(name: string) {
-		if (!this.#dispatchers.has(name)) throw new Error(`Process ${name} not found`);
-		const dispatcher = this.#dispatchers.get(name);
-		dispatcher.destroy();
-		this.#dispatchers.delete(name);
+		if (name === 'main') throw new Error('Cannot unregister the main process');
+
+		this.#actions.unregister(name);
+		this.#events.unregister(name);
 	}
 
 	/**

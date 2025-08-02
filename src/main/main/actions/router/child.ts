@@ -1,5 +1,5 @@
 import type MainProcessHandler from '../..';
-import type { IRequestMessage, IResponseMessage } from '../../../types';
+import type { IRequestMessage, IResponseMessage, ErrorResponseType } from '../../../types';
 import Dispatcher from '../../../dispatcher';
 
 /**
@@ -57,45 +57,42 @@ export default class ChildRouter {
 	async #exec(message: IRequestMessage) {
 		const { id, target, action, params } = message;
 
-		const respond = (data: { response?: any; error?: string | Error }) => {
-			const { response, error } = ((): { response?: any; error?: ErrorType } => {
-				if (data.error) {
-					if (typeof data.error === 'string') {
-						return { error: data.error };
-					}
-
-					if (!(data.error instanceof Error)) {
-						throw new Error(`Invalid error type: ${typeof data.error}`);
-					}
-
-					const { message, stack } = data.error;
-					return { error: { message, stack } };
-				}
-
-				if (!data.response) return { response: data.response };
-			})();
-
-			const message: IResponseMessage = Object.assign({ type: 'ipc.response', id, response, error });
+		const respond = ({ data, error }: { data?: any; error?: Error }) => {
+			const message: IResponseMessage = {
+				type: 'ipc.response',
+				ipc: { instance: this.#main.id },
+				request: id,
+				data,
+				error: error ? { name: error.name, message: error.message, stack: error.stack } : void 0
+			};
 			this.#fork.send(message);
 		};
 
 		if (!target || !action) {
-			respond({ error: `Properties 'target' and 'action' must be set on message "${JSON.stringify(message)}"` });
+			const text = `Properties 'target' and 'action' must be set on message "${JSON.stringify(message)}"`;
+			const error = new Error(text);
+			respond({ error });
 			return;
 		}
 
 		// Check if the target is the main process or another child process
 		if (target === 'main') {
-			let response;
+			// Execute the action in the main process
 			try {
-				response = await this.#main.actions.exec(action, ...params);
+				const data = await this.#main.actions.exec(action, ...params);
+				respond({ data });
 			} catch (error) {
 				respond({ error });
 				return;
 			}
-			respond({ response });
 		} else {
-			respond(await this.#main.actions.dispatch(target, action, ...params));
+			// Dispatch the action to another child process
+			try {
+				const data = await this.#main.actions.dispatch(target, action, ...params);
+				respond({ data });
+			} catch (error) {
+				respond({ error });
+			}
 		}
 	}
 
