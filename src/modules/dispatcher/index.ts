@@ -1,6 +1,5 @@
-import type MainProcessHandler from '../main';
-import type ChildProcessHandler from '../child';
-import type { IResponseMessage } from '../types';
+import type { IResponseMessage } from '@beyond-js/ipc/types';
+import type { UUID } from 'crypto';
 import IPCError from './error';
 import { PendingPromise } from '@beyond-js/pending-promise/main';
 import { randomUUID } from 'crypto';
@@ -9,11 +8,11 @@ import { randomUUID } from 'crypto';
  * Sends IPC action requests and routes responses across processes.
  * Used by both the main and child process to handle remote action execution.
  */
-export default class Dispatcher {
+export /*bundle*/ class Dispatcher {
 	#process: NodeJS.Process;
 
 	// Can be the main process or a child process handler
-	#container: MainProcessHandler | ChildProcessHandler;
+	#container: { id: UUID };
 
 	/**
 	 * Creates a new IPC Dispatcher instance.
@@ -36,7 +35,7 @@ export default class Dispatcher {
 	 * @throws Error if called from the main process without providing the `fork`, or from a non-forked environment
 	 *         without access to `process.send`.
 	 */
-	constructor(container: MainProcessHandler | ChildProcessHandler, fork?: NodeJS.Process) {
+	constructor(container: { id: UUID }, fork?: NodeJS.Process) {
 		// If it is the main process, then it is required the fork parameter
 		// with which to establish the communication
 		if (!process.send && !fork) throw new Error('Invalid parameters');

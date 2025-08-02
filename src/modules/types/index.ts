@@ -119,7 +119,7 @@ export /*bundle*/ type IResponseMessage = {
 	error?: ErrorResponseType;
 };
 
-export interface IProcessHandler {
+export /*bundle*/ interface IProcessHandler {
 	on: (origin: string, event: string, listener: IListener) => void;
 	off: (origin: string, event: string, listener: IListener) => void;
 	emit: (event: string, data: any) => void;

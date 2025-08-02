@@ -1,5 +1,5 @@
 import type MainProcessHandler from '..';
-import type { IHandler } from '../../types';
+import type { IHandler } from '@beyond-js/ipc/types';
 import Router from './router';
 
 /**

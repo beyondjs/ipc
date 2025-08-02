@@ -1,5 +1,5 @@
 import Router from './router';
-import { IListener } from '../../types';
+import { IListener } from '@beyond-js/ipc/types';
 
 export default class Events {
 	// Sources of events are the events received from the forked processes

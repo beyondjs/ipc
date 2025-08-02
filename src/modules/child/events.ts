@@ -1,4 +1,4 @@
-import type { IListener, IEventEmit, IEventMessage, IEventSubscription } from '../types';
+import type { IListener, IEventEmit, IEventMessage, IEventSubscription } from '@beyond-js/ipc/types';
 
 /**
  * Manages event communication for a child process in the IPC system.

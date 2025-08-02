@@ -1,6 +1,6 @@
 import type MainProcessHandler from '../..';
-import type { IRequestMessage, IResponseMessage, ErrorResponseType } from '../../../types';
-import Dispatcher from '../../../dispatcher';
+import type { IRequestMessage, IResponseMessage, ErrorResponseType } from '@beyond-js/ipc/types';
+import { Dispatcher } from '@beyond-js/ipc/dispatcher';
 
 /**
  * Handles IPC messages received from a specific child process.

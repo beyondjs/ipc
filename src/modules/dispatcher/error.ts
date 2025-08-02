@@ -1,4 +1,4 @@
-import type { ErrorResponseType } from '../types';
+import type { ErrorResponseType } from '@beyond-js/ipc/types';
 
 /**
  * IPCError represents an error that occurred during inter-process communication (IPC).

@@ -1,7 +1,7 @@
-import type { IProcessHandler, IListener } from '../types';
+import type { IProcessHandler, IListener } from '@beyond-js/ipc/types';
 import Actions from './actions';
 import { randomUUID } from 'crypto';
-import Dispatcher from '../dispatcher';
+import { Dispatcher } from '@beyond-js/ipc/dispatcher';
 import Events from './events';
 
 export default class ChildProcessHandler implements IProcessHandler {
@@ -26,6 +26,16 @@ export default class ChildProcessHandler implements IProcessHandler {
 		this.#actions = new Actions(this);
 		this.#events = new Events();
 		this.#dispatcher = new Dispatcher(this);
+	}
+
+	register(name: string, fork: NodeJS.Process) {
+		void name, fork;
+		throw new Error('Method must be called from the main process');
+	}
+
+	unregister(name: string) {
+		void name;
+		throw new Error('Method must be called from the main process');
 	}
 
 	on(origin: string, event: string, listener: IListener) {
@@ -67,3 +77,5 @@ export default class ChildProcessHandler implements IProcessHandler {
 		this.#actions.destroy();
 	}
 }
+
+export /*bundle*/ const ipc = new ChildProcessHandler();

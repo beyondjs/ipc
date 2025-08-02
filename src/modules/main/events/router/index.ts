@@ -1,4 +1,4 @@
-import { IListener } from '../../../types';
+import { IListener } from '@beyond-js/ipc/types';
 import OriginHandler from './origin';
 
 export default class Router {
