@@ -6,7 +6,7 @@
 	"license": "MIT",
 	"repository": "https://github.com/beyondjs/ipc",
 	"modules": {
-		"path": "main"
+		"path": "modules"
 	},
 	"deployment": {
 		"distributions": [
