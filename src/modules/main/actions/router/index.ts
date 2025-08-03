@@ -1,4 +1,5 @@
 import type { MainProcessHandler } from '../..';
+import type { ChildProcess } from 'child_process';
 import ChildRouter from './child';
 
 export default class ActionsRouter {
@@ -9,7 +10,7 @@ export default class ActionsRouter {
 		this.#main = main;
 	}
 
-	register(name: string, fork: NodeJS.Process) {
+	register(name: string, fork: ChildProcess) {
 		if (this.#children.has(name)) {
 			throw new Error(`Child process "${name}" already registered`);
 		}

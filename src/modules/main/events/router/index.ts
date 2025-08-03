@@ -1,4 +1,5 @@
-import { IListener } from '@beyond-js/ipc/types';
+import type { ChildProcess } from 'child_process';
+import type { IListener } from '@beyond-js/ipc/types';
 import OriginHandler from './origin';
 
 export default class Router {
@@ -28,7 +29,7 @@ export default class Router {
 		this.#origins.forEach(handler => handler.emit(origin, event, message));
 	}
 
-	register(name: string, fork: NodeJS.Process) {
+	register(name: string, fork: ChildProcess) {
 		if (this.#origins.has(name)) {
 			throw new Error(`Child process "${name}" already registered`);
 		}

@@ -10,7 +10,7 @@ The Dispatcher is used in two contexts:
 -   **Main process** (`MainProcessHandler`):
 
     -   When `.exec(...)` is called, the dispatcher directly sends the message to the target child process.
-    -   It uses a reference to the child (`fork: NodeJS.Process`) to communicate.
+    -   It uses a reference to the child (`fork: ChildProcess`) to communicate.
 
 -   **Child process** (`ChildProcessHandler`):
     -   When `.exec(...)` is called, the dispatcher sends the request to the main process via `process.send`.

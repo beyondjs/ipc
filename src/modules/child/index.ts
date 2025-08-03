@@ -28,16 +28,6 @@ export class ChildProcessHandler implements IProcessHandler {
 		this.#dispatcher = new Dispatcher(this);
 	}
 
-	register(name: string, fork: NodeJS.Process) {
-		void name, fork;
-		throw new Error('Method must be called from the main process');
-	}
-
-	unregister(name: string) {
-		void name;
-		throw new Error('Method must be called from the main process');
-	}
-
 	on(origin: string, event: string, listener: IListener) {
 		this.#events.on(origin, event, listener);
 	}

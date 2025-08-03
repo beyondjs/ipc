@@ -1,4 +1,5 @@
 import type { MainProcessHandler } from '..';
+import type { ChildProcess } from 'child_process';
 import type { IHandler } from '@beyond-js/ipc/types';
 import Router from './router';
 
@@ -36,7 +37,7 @@ export default class Actions {
 	 * @param name - Unique name assigned to the forked process.
 	 * @param fork - The child process (fork) to register.
 	 */
-	register(name: string, fork: NodeJS.Process) {
+	register(name: string, fork: ChildProcess) {
 		this.#router.register(name, fork);
 	}
 

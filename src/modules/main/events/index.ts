@@ -1,3 +1,4 @@
+import type { ChildProcess } from 'child_process';
 import Router from './router';
 import { IListener } from '@beyond-js/ipc/types';
 
@@ -16,7 +17,7 @@ export default class Events {
 	 * @param name - Unique name assigned to the forked process.
 	 * @param fork - The child process (fork) to register.
 	 */
-	register(name: string, fork: NodeJS.Process) {
+	register(name: string, fork: ChildProcess) {
 		this.#router.register(name, fork);
 	}
 

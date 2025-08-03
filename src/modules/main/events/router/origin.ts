@@ -1,13 +1,14 @@
 import type Router from '.';
+import type { ChildProcess } from 'child_process';
 
 export default class OriginHandler {
 	#router: Router;
 	#name: string;
-	#fork: NodeJS.Process;
+	#fork: ChildProcess;
 
 	#listeners = new Set();
 
-	constructor(sources: Router, name: string, fork: NodeJS.Process) {
+	constructor(sources: Router, name: string, fork: ChildProcess) {
 		this.#router = sources;
 		this.#name = name;
 		this.#fork = fork;

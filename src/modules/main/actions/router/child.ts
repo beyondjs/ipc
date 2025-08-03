@@ -1,5 +1,6 @@
 import type { MainProcessHandler } from '../..';
-import type { IRequestMessage, IResponseMessage, ErrorResponseType } from '@beyond-js/ipc/types';
+import type { IRequestMessage, IResponseMessage } from '@beyond-js/ipc/types';
+import type { ChildProcess } from 'child_process';
 import { Dispatcher } from '@beyond-js/ipc/dispatcher';
 
 /**
@@ -24,12 +25,12 @@ export default class ChildRouter {
 	}
 
 	// The forked process that this handler is associated with
-	#fork: NodeJS.Process;
+	#fork: ChildProcess;
 
 	// The dispatcher is used to execute actions that are meant for other child processes
 	#dispatcher: Dispatcher;
 
-	constructor(main: MainProcessHandler, name: string, fork: NodeJS.Process) {
+	constructor(main: MainProcessHandler, name: string, fork: ChildProcess) {
 		this.#main = main;
 		this.#name = name;
 		this.#fork = fork;

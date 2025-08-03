@@ -1,4 +1,5 @@
 import type { IListener, IHandler, IProcessHandler } from '@beyond-js/ipc/types';
+import type { ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
 import Actions from './actions';
 import Events from './events';
@@ -48,7 +49,7 @@ export class MainProcessHandler implements IProcessHandler {
 		this.#events.emit(event, data);
 	}
 
-	register(name: string, fork: NodeJS.Process) {
+	register(name: string, fork: ChildProcess) {
 		if (!name || !fork) throw new Error('Invalid parameters');
 
 		this.#actions.register(name, fork);
