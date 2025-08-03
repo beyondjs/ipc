@@ -1,4 +1,4 @@
-import type ChildProcessHandler from '.';
+import type { ChildProcessHandler } from '.';
 import { IHandler, IRequestMessage, IResponseMessage } from '@beyond-js/ipc/types';
 
 export default class Actions {

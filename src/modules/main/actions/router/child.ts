@@ -1,4 +1,4 @@
-import type MainProcessHandler from '../..';
+import type { MainProcessHandler } from '../..';
 import type { IRequestMessage, IResponseMessage, ErrorResponseType } from '@beyond-js/ipc/types';
 import { Dispatcher } from '@beyond-js/ipc/dispatcher';
 

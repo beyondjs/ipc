@@ -1,4 +1,4 @@
-import type MainProcessHandler from '../..';
+import type { MainProcessHandler } from '../..';
 import ChildRouter from './child';
 
 export default class ActionsRouter {

@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import Actions from './actions';
 import Events from './events';
 
-export default class MainProcessHandler implements IProcessHandler {
+export class MainProcessHandler implements IProcessHandler {
 	#id = randomUUID();
 	get id() {
 		return this.#id;

@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import { Dispatcher } from '@beyond-js/ipc/dispatcher';
 import Events from './events';
 
-export default class ChildProcessHandler implements IProcessHandler {
+export class ChildProcessHandler implements IProcessHandler {
 	#id = randomUUID();
 	get id() {
 		return this.#id;
