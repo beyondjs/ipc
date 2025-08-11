@@ -27,7 +27,7 @@ export default class Actions {
 	}
 
 	handle = (action: string, handler: IHandler) => this.#handlers.set(action, handler);
-	unhandle = (action: string) => this.#handlers.delete(action);
+	detach = (action: string) => this.#handlers.delete(action);
 	off = (action: string) => this.#handlers.delete(action);
 	has = (action: string) => this.#handlers.has(action);
 

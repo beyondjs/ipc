@@ -12,21 +12,21 @@ export default class Router {
 		this.#listeners = listeners;
 	}
 
-	emit(origin: string, event: string, message: any) {
+	emit(origin: string, event: string, data: any) {
 		// Emit the event to the listeners of the main process
 		const key = `${origin}|${event}`;
 		if (this.#listeners.has(key)) {
 			const listeners = this.#listeners.get(key);
 			listeners.forEach(listener => {
 				try {
-					listener(message);
+					listener(data);
 				} catch (exc) {
 					console.warn(`Error emitting event ${key}`, exc.stack);
 				}
 			});
 		}
 
-		this.#origins.forEach(handler => handler.emit(origin, event, message));
+		this.#origins.forEach(handler => handler.emit(origin, event, data));
 	}
 
 	register(name: string, fork: ChildProcess) {

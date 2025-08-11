@@ -1,5 +1,6 @@
 import type Router from '.';
 import type { ChildProcess } from 'child_process';
+import type { IEventSubscription, IEventRoute, IEventDispatch } from '@beyond-js/ipc/types';
 
 export default class OriginHandler {
 	#router: Router;
@@ -8,8 +9,8 @@ export default class OriginHandler {
 
 	#listeners = new Set();
 
-	constructor(sources: Router, name: string, fork: ChildProcess) {
-		this.#router = sources;
+	constructor(router: Router, name: string, fork: ChildProcess) {
+		this.#router = router;
 		this.#name = name;
 		this.#fork = fork;
 
@@ -24,56 +25,56 @@ export default class OriginHandler {
 	 * @param event {string} The event name
 	 * @param message {*} The message to be sent
 	 */
-	emit(origin: string, event: string, message: any): void {
+	emit(origin: string, event: string, data: any): void {
 		const key = `${origin}|${event}`;
 		if (!this.#listeners.has(key)) return;
 
 		try {
-			this.#fork.send({ type: 'ipc.event.dispatch', origin, event: event, message: message });
+			const message: IEventDispatch = { type: 'ipc.event.dispatch', origin, event, data };
+			this.#fork.send(message);
 		} catch (exc) {
 			console.warn(`Error emitting event ${key} to fork process with name "${this.#name}"`, exc.message);
 		}
 	}
 
-	#onmessage = (message: any) => {
+	#onmessage = (message: IEventSubscription | IEventRoute) => {
 		if (typeof message !== 'object') return;
 
-		if (message.type === 'ipc.add.event.listener') {
-			if (!message.source || !message.event) {
+		if (message.type === 'ipc.event.subscribe') {
+			if (!message.origin || !message.event) {
 				console.error('Invalid message of event subscription', message);
 				return;
 			}
 
-			const key = `${message.source}|${message.event}`;
+			const key = `${message.origin}|${message.event}`;
 			if (this.#listeners.has(key)) {
 				console.warn(`Event "${key}" already subscribed`);
 				return;
 			}
 
 			this.#listeners.add(key);
-		} else if (message.type === 'ipc.remove.event.listener') {
-			if (!message.source || !message.event) {
+		} else if (message.type === 'ipc.event.unsubscribe') {
+			if (!message.origin || !message.event) {
 				console.error('Invalid message of event subscription remove', message);
 				return;
 			}
 
-			const key = `${message.source}|${message.event}`;
+			const key = `${message.origin}|${message.event}`;
 			if (!this.#listeners.has(key)) {
 				console.warn(`Event "${key}" was not previously subscribed`);
 				return;
 			}
 
 			this.#listeners.add(key);
-		} else if (message.type === 'ipc.event.emit') {
+		} else if (message.type === 'ipc.event.route') {
 			if (!message.event || typeof message.event !== 'string') {
-				console.error('Invalid parameters on event emit', message);
+				console.error('Invalid parameters on event routing', message);
 				return;
 			}
 
-			// This is a method exposed by the sources collection (index.js file)
-			// This method will iterate over the sources to dispatch the event to the
+			// This method will iterate over the origins to dispatch the event to the
 			// forked processes that are attached to the event
-			this.#router.emit(this.#name, message.event, message.message);
+			this.#router.emit(this.#name, message.event, message.data);
 		}
 	};
 

@@ -1,10 +1,16 @@
 {
 	"name": "@beyond-js/ipc",
-	"author": "BeyondJS",
-	"email": "hello@beyondjs.com",
-	"version": "1.0.4",
+	"author": {
+		"name": "BeyondJS",
+		"email": "hello@beyondjs.com"
+	},
+	"version": "1.0.5",
 	"license": "MIT",
-	"repository": "https://github.com/beyondjs/ipc",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/beyondjs/ipc.git"
+	},
+	"homepage": "https://github.com/beyondjs/ipc#readme",
 	"modules": {
 		"path": "modules"
 	},
@@ -33,6 +39,11 @@
 		"@beyond-js/pending-promise": "~0.0.4"
 	},
 	"devDependencies": {
+		"@beyond-js/local": "~0.1.3",
 		"@types/node": "~20.11.0"
-	}
+	},
+	"keywords": [
+		"beyondjs",
+		"inter-process-communication"
+	]
 }

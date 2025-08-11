@@ -1,4 +1,4 @@
-import type { IListener, IEventEmit, IEventMessage, IEventSubscription } from '@beyond-js/ipc/types';
+import type { IListener, IEventRoute, IEventDispatch, IEventSubscription } from '@beyond-js/ipc/types';
 
 /**
  * Manages event communication for a child process in the IPC system.
@@ -44,7 +44,7 @@ export default class Events {
 
 	emit(event: string, data: any): void {
 		// Always send to the main process for routing
-		const message: IEventEmit = { type: 'ipc.event.emit', event, data };
+		const message: IEventRoute = { type: 'ipc.event.route', event, data };
 		process.send(message);
 	}
 
@@ -103,7 +103,7 @@ export default class Events {
 		}
 	}
 
-	#onmessage = (message: IEventMessage) => {
+	#onmessage = (message: IEventDispatch) => {
 		// Validate the message type and structure
 		if (typeof message !== 'object' || message.type !== 'ipc.event.dispatch') return;
 		if (!message.origin || !message.event) {

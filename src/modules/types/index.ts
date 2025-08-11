@@ -11,7 +11,7 @@ export /*bundle*/ type IListener = (data: any) => void;
 export type MessageType =
 	| 'ipc.request'
 	| 'ipc.response'
-	| 'ipc.event.emit'
+	| 'ipc.event.route'
 	| 'ipc.event.dispatch'
 	| 'ipc.event.subscribe'
 	| 'ipc.event.unsubscribe';
@@ -45,9 +45,9 @@ export /*bundle*/ type IEventSubscription = {
  * Emitted event message sent from any process.
  * This message informs the system that an event has occurred and should be dispatched.
  */
-export /*bundle*/ type IEventEmit = {
+export /*bundle*/ type IEventRoute = {
 	/** Type identifier for emitted events */
-	type: 'ipc.event.emit';
+	type: 'ipc.event.route';
 
 	/** Name of the emitted event */
 	event: string;
@@ -60,7 +60,7 @@ export /*bundle*/ type IEventEmit = {
  * Event message that has been routed and dispatched to a subscriber.
  * Sent from the main process to subscribed child processes.
  */
-export /*bundle*/ type IEventMessage = {
+export /*bundle*/ type IEventDispatch = {
 	type: 'ipc.event.dispatch';
 	origin: string;
 	event: string;
@@ -101,17 +101,6 @@ export /*bundle*/ type IResponseMessage = {
 	/** ID of the original request being responded to */
 	request: string;
 
-	/**
-	 * This is used to distinguish between multiple versions or instances of the IPC system
-	 * running within the same runtime environment. For example, in complex dependency trees
-	 * where different packages may include different versions of the IPC module, this ensures
-	 * that a response is only processed by the correct instance that initiated the request.
-	 *
-	 * If provided, the receiving dispatcher will verify that the `instance` value matches its own
-	 * before resolving the corresponding request.
-	 */
-	ipc: { instance: string };
-
 	/** Returned result of the action execution */
 	data?: any;
 
@@ -124,5 +113,15 @@ export /*bundle*/ interface IProcessHandler {
 	off: (origin: string, event: string, listener: IListener) => void;
 	emit: (event: string, data: any) => void;
 	exec: (target: string, action: string, ...params: any[]) => Promise<any>;
+	handle: (action: string, callback: (message: any) => any) => void;
+	detach: (action: string) => void;
+
+	/**
+	 * DEPRECATED: Use `emit` or `events.emit` instead.
+	 *
+	 * @param event {string} The name of the event to emit
+	 * @param data
+	 */
+	notify: (event: string, data: any) => void;
 	destroy: () => void;
 }

@@ -1,4 +1,4 @@
-import type { IResponseMessage } from '@beyond-js/ipc/types';
+import type { IRequestMessage, IResponseMessage } from '@beyond-js/ipc/types';
 import type { UUID } from 'crypto';
 import type { ChildProcess } from 'child_process';
 import IPCError from './error';
@@ -11,9 +11,6 @@ import { randomUUID } from 'crypto';
  */
 export /*bundle*/ class Dispatcher {
 	#process: NodeJS.Process | ChildProcess;
-
-	// Can be the main process or a child process handler
-	#container: { id: UUID };
 
 	/**
 	 * Creates a new IPC Dispatcher instance.
@@ -36,12 +33,10 @@ export /*bundle*/ class Dispatcher {
 	 * @throws Error if called from the main process without providing the `fork`, or from a non-forked environment
 	 *         without access to `process.send`.
 	 */
-	constructor(container: { id: UUID }, fork?: ChildProcess) {
+	constructor(fork?: ChildProcess) {
 		// If it is the main process, then it is required the fork parameter
 		// with which to establish the communication
 		if (!process.send && !fork) throw new Error('Invalid parameters');
-
-		this.#container = container;
 
 		this.#process = fork ? fork : process;
 		this.#process.on('message', this.#onmessage);
@@ -52,24 +47,16 @@ export /*bundle*/ class Dispatcher {
 	/**
 	 * Execute an IPC action
 	 *
-	 * @param target {string | undefined} The target process where to execute the action
-	 * @param action {string} The name of the action being requested
-	 * @param params {*} The parameters of the action
+	 * @param target {string | undefined} The `target` parameter is used to route the action from
+	 * a child process to another child process through the main process.
+	 * @param action {string} The name of the action being requested.
+	 * @param params {*} The parameters of the action.
 	 */
 	exec(target: string, action: string, ...params: any[]) {
-		if (!process.send && target) {
-			// Trying to execute from the main process to the main process
-			return Promise.reject(new Error('Parameter target cannot be "main" in this context'));
-		}
-
 		const id = randomUUID();
 		const promise: PendingPromise<any> = new PendingPromise();
 
-		const rq = {
-			type: 'ipc.request',
-			ipc: { instance: this.#container.id },
-			request: { target, id, action, params }
-		};
+		const rq: IRequestMessage = { type: 'ipc.request', target, id, action, params };
 
 		this.#pendings.set(id, promise);
 		this.#process.send(rq);
@@ -83,11 +70,6 @@ export /*bundle*/ class Dispatcher {
 	#onmessage = (message: IResponseMessage) => {
 		// Assure the message is an IPC response
 		if (typeof message !== 'object' || message.type !== 'ipc.response') return;
-
-		// Ignore the message if it was not intended for this IPC instance.
-		// This ensures that in environments with multiple IPC versions or instances loaded,
-		// only the matching dispatcher processes the response.
-		if (this.#container.id !== message.ipc?.instance) return;
 
 		if (!this.#pendings.has(message.request)) {
 			console.error('Response message id is invalid', message);

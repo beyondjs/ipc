@@ -1,25 +1,36 @@
 import type { ChildProcessHandler } from '.';
-import { IHandler, IRequestMessage, IResponseMessage } from '@beyond-js/ipc/types';
+import type { IHandler, IRequestMessage, IResponseMessage } from '@beyond-js/ipc/types';
+import { Dispatcher } from '@beyond-js/ipc/dispatcher';
 
 export default class Actions {
-	#child: ChildProcessHandler;
 	#handlers: Map<string, IHandler> = new Map();
+	#dispatcher: Dispatcher;
 
 	handle = (action: string, handler: IHandler) => this.#handlers.set(action, handler);
-	removeHandler = (action: string) => this.#handlers.delete(action);
+	detach = (action: string) => this.#handlers.delete(action);
 
 	constructor(child: ChildProcessHandler) {
-		this.#child = child;
+		this.#dispatcher = new Dispatcher();
 		process.on('message', this.#onmessage);
 	}
 
-	async #exec(message: IRequestMessage): Promise<void> {
+	/**
+	 * Execute an IPC action
+	 *
+	 * @param target {string | undefined} The name of the target process
+	 * @param action {string} The name of the action being requested
+	 * @param params {*} The parameters of the action
+	 */
+	async exec(target: string, action: string, ...params: any[]): Promise<any> {
+		return await this.#dispatcher.exec(target, action, ...params);
+	}
+
+	async #run(message: IRequestMessage): Promise<void> {
 		const { id, action, params } = message;
 
 		const respond = ({ data, error }: { data?: any; error?: Error }) => {
 			const message: IResponseMessage = {
 				type: 'ipc.response',
-				ipc: { instance: this.#child.id },
 				request: id,
 				data,
 				error: error ? { name: error.name, message: error.message, stack: error.stack } : void 0
@@ -56,10 +67,11 @@ export default class Actions {
 			console.error('An undefined message id received on ipc communication', message);
 			return;
 		}
-		this.#exec(message).catch(exc => console.error(exc instanceof Error ? exc.stack : exc));
+		this.#run(message).catch(exc => console.error(exc instanceof Error ? exc.stack : exc));
 	};
 
 	destroy() {
+		this.#dispatcher.destroy();
 		process.removeListener('message', this.#onmessage);
 	}
 }

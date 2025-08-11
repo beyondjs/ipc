@@ -1,22 +1,16 @@
 import type { IListener, IHandler, IProcessHandler } from '@beyond-js/ipc/types';
 import type { ChildProcess } from 'child_process';
-import { randomUUID } from 'crypto';
 import Actions from './actions';
 import Events from './events';
 
 export class MainProcessHandler implements IProcessHandler {
-	#id = randomUUID();
-	get id() {
-		return this.#id;
-	}
-
 	#actions: Actions;
 	get actions() {
 		return this.#actions;
 	}
 
 	handle = (action: string, handler: IHandler) => this.#actions.handle(action, handler);
-	removeHandler = (action: string) => this.#actions.off(action);
+	detach = (action: string) => this.#actions.off(action);
 
 	constructor() {
 		this.#actions = new Actions(this);

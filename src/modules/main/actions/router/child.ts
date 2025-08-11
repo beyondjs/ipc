@@ -35,7 +35,7 @@ export default class ChildRouter {
 		this.#name = name;
 		this.#fork = fork;
 
-		this.#dispatcher = new Dispatcher(main, fork);
+		this.#dispatcher = new Dispatcher(fork);
 		fork.on('message', this.#onmessage);
 	}
 
@@ -61,7 +61,6 @@ export default class ChildRouter {
 		const respond = ({ data, error }: { data?: any; error?: Error }) => {
 			const message: IResponseMessage = {
 				type: 'ipc.response',
-				ipc: { instance: this.#main.id },
 				request: id,
 				data,
 				error: error ? { name: error.name, message: error.message, stack: error.stack } : void 0
