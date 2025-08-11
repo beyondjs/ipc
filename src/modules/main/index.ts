@@ -44,7 +44,11 @@ export class MainProcessHandler implements IProcessHandler {
 	}
 
 	register(name: string, fork: ChildProcess) {
-		if (!name || !fork) throw new Error('Invalid parameters');
+		if (!name || !fork)
+			throw new Error(
+				'Invalid parameters for register, `name` (string) and `fork` (ChildProcess) must be provided'
+			);
+		if (name === 'main') throw new Error('Cannot register the main process');
 
 		this.#actions.register(name, fork);
 		this.#events.register(name, fork);
