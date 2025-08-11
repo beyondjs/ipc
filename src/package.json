@@ -1,14 +1,14 @@
 {
 	"name": "@beyond-js/ipc",
+	"version": "1.0.5",
 	"author": {
 		"name": "BeyondJS",
 		"email": "hello@beyondjs.com"
 	},
-	"version": "1.0.5",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/beyondjs/ipc.git"
+		"url": "https://github.com/beyondjs/ipc"
 	},
 	"homepage": "https://github.com/beyondjs/ipc#readme",
 	"modules": {
@@ -36,6 +36,7 @@
 		]
 	},
 	"dependencies": {
+		"@beyond-js/kernel": "~0.1.12",
 		"@beyond-js/pending-promise": "~0.0.4"
 	},
 	"devDependencies": {
