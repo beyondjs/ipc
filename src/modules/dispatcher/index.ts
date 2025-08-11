@@ -36,7 +36,7 @@ export /*bundle*/ class Dispatcher {
 	constructor(fork?: ChildProcess) {
 		// If it is the main process, then it is required the fork parameter
 		// with which to establish the communication
-		if (!process.send && !fork) throw new Error('Invalid parameters');
+		if (!process.send && !fork) throw new Error('Parameter `fork` is required in the main process');
 
 		this.#process = fork ? fork : process;
 		this.#process.on('message', this.#onmessage);

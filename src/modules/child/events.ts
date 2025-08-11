@@ -50,7 +50,9 @@ export default class Events {
 
 	on(origin: string, event: string, listener: IListener) {
 		if (typeof origin !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
-			throw new Error('Invalid parameters');
+			throw new Error(
+				'Invalid parameters, parameters `origin` (string), `event` (string), and `listener` (function) must be provided'
+			);
 		}
 
 		const key = `${origin}|${event}`;
@@ -78,7 +80,9 @@ export default class Events {
 
 	off(origin: string, event: string, listener: IListener) {
 		if (typeof origin !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
-			throw new Error('Invalid parameters');
+			throw new Error(
+				'Invalid parameters, parameters `origin` (string), `event` (string), and `listener` (function) must be provided'
+			);
 		}
 
 		const key = `${origin}|${event}`;
