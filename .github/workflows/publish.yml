@@ -23,14 +23,13 @@ jobs:
               run: npm install -g beyond@latest
 
             - name: Install dependencies
-              working-directory: src
               run: npm install
 
             - name: Build package
               run: beyond build --pkg=@beyond-js/ipc --distribution=npm --logs
 
             - name: Publish to NPM
-              working-directory: src/.beyond/builds/npm/code
+              working-directory: .beyond/builds/npm/code
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
               run: npm publish --access public
