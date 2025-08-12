@@ -32,6 +32,15 @@ npm install @beyond-js/ipc
 
 ## Usage
 
+The unified module automatically detects if it's running in the main or a child process, so a single import is all
+that's needed for most contexts.
+
+```ts
+import { ipc } from '@beyond-js/ipc/wrapper';
+```
+
+Alternatively, you can manually import the main or child handler if you prefer to manage them explicitly.
+
 ```ts
 import { ipc } from '@beyond-js/ipc/main';
 import { ipc } from '@beyond-js/ipc/child';

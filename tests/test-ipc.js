@@ -7,7 +7,7 @@ BEE('http://localhost:1110', { inspect: 4000 });
 (async () => {
 	const { ipc } = await bimport('@beyond-js/ipc/main');
 
-	const cwd = process.cwd();
+	const cwd = __dirname;
 	const children = {
 		a: fork('./child-a.js', { cwd }),
 		b: fork('./child-b.js', { cwd })

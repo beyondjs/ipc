@@ -1,0 +1,5 @@
+{
+	"name": "wrapper",
+	"bundle": "ts",
+	"files": "*"
+}

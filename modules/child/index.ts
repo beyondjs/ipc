@@ -2,6 +2,10 @@ import type { IProcessHandler, IListener } from '@beyond-js/ipc/types';
 import Actions from './actions';
 import Events from './events';
 
+if (!process.send) {
+	console.warn('BeyondJS IPC: Main process detected. This module is designed to be used in a child process context.');
+}
+
 export class ChildProcessHandler implements IProcessHandler {
 	#actions: Actions;
 	get actions() {

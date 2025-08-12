@@ -125,3 +125,20 @@ export /*bundle*/ interface IProcessHandler {
 	notify: (event: string, data: any) => void;
 	destroy: () => void;
 }
+
+export /*bundle*/ interface IMainProcessHandler extends IProcessHandler {
+	/**
+	 * Registers a child process in the main process.
+	 *
+	 * @param name {string} Unique identifier for the child process
+	 * @param fork {any} The child process instance
+	 */
+	register: (name: string, fork: any) => void;
+
+	/**
+	 * Unregisters a child process from the main process.
+	 *
+	 * @param name {string} Unique identifier for the child process to unregister
+	 */
+	unregister: (name: string) => void;
+}
