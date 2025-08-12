@@ -1,0 +1,22 @@
+require('colors');
+const BEE = require('@beyond-js/bee');
+
+BEE('http://localhost:1110', { inspect: 4000 });
+
+(async () => {
+	const { SerializableError } = await bimport('@beyond-js/ipc/errors');
+
+	const base = new Error('Base');
+	const middle = new Error('Middle', { cause: base });
+	const top = new Error('Top', { cause: middle });
+
+	const wire = SerializableError.serialize(top);
+	const back = SerializableError.deserialize(wire);
+
+	const print = SerializableError.print(back);
+	console.log(`Error in cascade:`.green + `\n${print}\n\n`);
+
+	console.log(`Top error:`.green + `${back.stack}\n\n`);
+	console.log(`Middle error:`.green + `${back.cause.stack}\n\n`);
+	console.log(`Base error:`.green + `${back.cause.cause.stack}`);
+})().catch(exc => console.error(exc.stack));

@@ -1,6 +1,7 @@
 import type { ChildProcessHandler } from '.';
 import type { IHandler, IRequestMessage, IResponseMessage } from '@beyond-js/ipc/types';
 import { Dispatcher } from '@beyond-js/ipc/dispatcher';
+import { SerializableError } from '@beyond-js/ipc/errors';
 
 export default class Actions {
 	#handlers: Map<string, IHandler> = new Map();
@@ -28,13 +29,11 @@ export default class Actions {
 	async #run(message: IRequestMessage): Promise<void> {
 		const { id, action, params } = message;
 
-		const respond = ({ data, error }: { data?: any; error?: Error }) => {
-			const message: IResponseMessage = {
-				type: 'ipc.response',
-				request: id,
-				data,
-				error: error ? { name: error.name, message: error.message, stack: error.stack } : void 0
-			};
+		const respond = (output: { data?: any; error?: Error }) => {
+			const { data } = output;
+			const error = output.error ? SerializableError.serialize(output.error) : void 0;
+
+			const message: IResponseMessage = { type: 'ipc.response', request: id, data, error };
 			process.send(message);
 		};
 

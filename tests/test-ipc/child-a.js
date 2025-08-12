@@ -9,6 +9,10 @@ BEE('http://localhost:1110', { inspect: 4000 });
 	// Register the 'ping' handler for the child process
 	ipc.handle('ping', message => `pong from child-a: ${message}`);
 
+	ipc.handle('error', () => {
+		throw new Error('This is a test error from child-a');
+	});
+
 	// Child-master test
 	const response = await ipc.exec('main', 'ping', 'Hello world!');
 	console.log(`Child-master exec test:\n`.green + `${response}`);

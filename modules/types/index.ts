@@ -1,3 +1,5 @@
+import type { IErrorModel } from '@beyond-js/ipc/errors';
+
 /**
  * Handler function for executing an action.
  */
@@ -88,8 +90,6 @@ export /*bundle*/ type IRequestMessage = {
 	params: any[];
 };
 
-export /*bundle*/ type ErrorResponseType = { name: string; message: string; stack: string };
-
 /**
  * Response to an action execution request.
  * Sent back to the process that initiated the request.
@@ -105,7 +105,7 @@ export /*bundle*/ type IResponseMessage = {
 	data?: any;
 
 	/** Error information if the action failed */
-	error?: ErrorResponseType;
+	error?: IErrorModel;
 };
 
 export /*bundle*/ interface IProcessHandler {

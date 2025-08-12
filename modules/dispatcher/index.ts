@@ -1,7 +1,6 @@
 import type { IRequestMessage, IResponseMessage } from '@beyond-js/ipc/types';
-import type { UUID } from 'crypto';
 import type { ChildProcess } from 'child_process';
-import IPCError from './error';
+import { SerializableError } from '@beyond-js/ipc/errors';
 import { PendingPromise } from '@beyond-js/pending-promise/main';
 import { randomUUID } from 'crypto';
 
@@ -79,7 +78,8 @@ export /*bundle*/ class Dispatcher {
 		// Resolve the pending promise with the response data or reject it with an error
 		const pending = this.#pendings.get(message.request);
 		if (message.error) {
-			pending.reject(new IPCError(message.error));
+			const error = SerializableError.deserialize(message.error);
+			pending.reject(error);
 		} else {
 			const { data } = message;
 			pending.resolve(data);

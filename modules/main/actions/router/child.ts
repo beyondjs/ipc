@@ -2,6 +2,7 @@ import type { MainProcessHandler } from '../..';
 import type { IRequestMessage, IResponseMessage } from '@beyond-js/ipc/types';
 import type { ChildProcess } from 'child_process';
 import { Dispatcher } from '@beyond-js/ipc/dispatcher';
+import { SerializableError } from '@beyond-js/ipc/errors';
 
 /**
  * Handles IPC messages received from a specific child process.
@@ -58,13 +59,11 @@ export default class ChildRouter {
 	async #exec(message: IRequestMessage) {
 		const { id, target, action, params } = message;
 
-		const respond = ({ data, error }: { data?: any; error?: Error }) => {
-			const message: IResponseMessage = {
-				type: 'ipc.response',
-				request: id,
-				data,
-				error: error ? { name: error.name, message: error.message, stack: error.stack } : void 0
-			};
+		const respond = (output: { data?: any; error?: Error }) => {
+			const { data } = output;
+			const error = output.error ? SerializableError.serialize(output.error) : void 0;
+
+			const message: IResponseMessage = { type: 'ipc.response', request: id, data, error };
 			this.#fork.send(message);
 		};
 

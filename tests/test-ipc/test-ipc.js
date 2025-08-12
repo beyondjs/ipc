@@ -6,6 +6,7 @@ BEE('http://localhost:1110', { inspect: 4000 });
 
 (async () => {
 	const { ipc } = await bimport('@beyond-js/ipc/wrapper');
+	const { SerializableError } = await bimport('@beyond-js/ipc/errors');
 
 	const cwd = __dirname;
 	const children = {
@@ -32,4 +33,14 @@ BEE('http://localhost:1110', { inspect: 4000 });
 		const time = new Date().toISOString().slice(14, 19);
 		ipc.emit('test-event', `Event emitted from master after 500 milliseconds: ${time} (m:s)`);
 	}, 500);
+
+	// Error handling test, waiting a sec just to show the error at the end of the test cases
+	setTimeout(() => {
+		ipc.exec('child-a', 'error')
+			.then(() => console.log('This should not be printed'))
+			.catch(exc => {
+				const print = SerializableError.print(exc);
+				console.error(`Error handling test:\n`.green + `${print}`);
+			});
+	}, 2000);
 })().catch(exc => console.error(exc.stack));
