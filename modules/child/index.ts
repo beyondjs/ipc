@@ -3,7 +3,10 @@ import Actions from './actions';
 import Events from './events';
 
 if (!process.send) {
-	console.warn('BeyondJS IPC: Main process detected. This module is designed to be used in a child process context.');
+	console.warn(
+		'Warning:\nBeyondJS IPC: This module is designed to be used in a child process context.\n' +
+			'If you are seeing this message, it may indicate that the IPC system is being used incorrectly.'
+	);
 }
 
 export class ChildProcessHandler implements IProcessHandler {

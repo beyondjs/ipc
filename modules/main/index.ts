@@ -5,7 +5,8 @@ import Events from './events';
 
 if (process.send) {
 	console.warn(
-		'BeyondJS IPC: Child process detected. This module is designed to be used in the main process context.'
+		'Warning:\nBeyondJS IPC: This module is designed to be used in a main process context.\n' +
+			'If you are seeing this message, it may indicate that the IPC system is being used incorrectly.\n'
 	);
 }
 

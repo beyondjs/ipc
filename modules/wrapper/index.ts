@@ -10,13 +10,15 @@ class ProcessHandlerWrapper implements IProcessHandler {
 		this.#handler = new PendingPromise<IProcessHandler | IMainProcessHandler>();
 
 		if (process.send) {
-			bimport('@beyond-js/ipc/main').then(({ handler }: { handler: IMainProcessHandler }) =>
-				this.#handler.resolve(handler)
-			);
+			// If process.send is available, we are in a child process context
+			bimport('@beyond-js/ipc/child').then(({ ipc }: { ipc: IProcessHandler }) => {
+				this.#handler.resolve(ipc);
+			});
 		} else {
-			bimport('@beyond-js/ipc/main').then(({ handler }: { handler: IProcessHandler }) =>
-				this.#handler.resolve(handler)
-			);
+			// If process.send is not available, we are in a main process context
+			bimport('@beyond-js/ipc/main').then(({ ipc }: { ipc: IMainProcessHandler }) => {
+				this.#handler.resolve(ipc);
+			});
 		}
 	}
 

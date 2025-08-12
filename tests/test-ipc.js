@@ -5,7 +5,7 @@ const BEE = require('@beyond-js/bee');
 BEE('http://localhost:1110', { inspect: 4000 });
 
 (async () => {
-	const { ipc } = await bimport('@beyond-js/ipc/main');
+	const { ipc } = await bimport('@beyond-js/ipc/wrapper');
 
 	const cwd = __dirname;
 	const children = {

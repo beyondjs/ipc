@@ -4,7 +4,7 @@ const BEE = require('@beyond-js/bee');
 BEE('http://localhost:1110', { inspect: 4000 });
 
 (async () => {
-	const { ipc } = await bimport('@beyond-js/ipc/child');
+	const { ipc } = await bimport('@beyond-js/ipc/wrapper');
 
 	// Register the 'ping' handler for the child process
 	ipc.handle('ping', message => `pong from child-b: ${message}`);
