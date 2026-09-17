@@ -1,102 +1,13 @@
-# IPC Module
+# @beyond-js/ipc
 
-The IPC module enables structured communication between processes in a Node.js application, including:
+Route actions and origin-qualified events between a Node parent and its registered child processes.
 
--   Main process ↔ Child process communication (both directions).
--   Child ↔ Child communication, routed through the main process.
+Read [architecture, APIs and lifecycle](docs/architecture.md) before integrating the package. The guide explains configuration, execution flow, source limitations and verification cases. Public Beyond modules are **main, child, wrapper, dispatcher, errors and types**; their module manifests and marked bundle exports define the API.
 
-The **main process** is referred to as **"main"**, and it acts as the central coordinator for message routing. Child
-processes communicate with each other and with the main process through a unified API, allowing:
+This checkout is authored with Beyond. [beyond.json](beyond.json) selects [package.json](package.json), whose module root is `modules`. Source module directories are not plain Node entrypoints; compiled public modules and their dependencies must be available to the consumer.
 
--   Remote action execution (similar to RPC).
--   Event-based communication (publish-subscribe).
+Use `detach(action)` to remove a handler; there is no `unhandle`. The wrapper requires global `bimport` and initializes asynchronously. IPC registration does not create a fork or await readiness. Requests have no built-in timeout/disconnect rejection, and event unsubscription/teardown require the [documented repairs](docs/architecture.md#lifecycle-and-failure-boundaries).
 
-The system automatically handles message routing, ensuring that:
+The build/test prerequisites and gaps are documented in the guide. No generic npm test/build command is supplied by the source manifest.
 
--   Child processes can send actions or events to other children (via the main process).
--   The main process can directly interact with any child.
--   Communication is asynchronous, with promise-based action resolution.
-
-This module simplifies inter-process messaging and abstracts away the complexity of managing forks, message
-serialization, and routing logic.
-
----
-
-## Installation
-
-```bash
-npm install @beyond-js/ipc
-```
-
-⸻
-
-## Usage
-
-The unified module automatically detects if it's running in the main or a child process, so a single import is all
-that's needed for most contexts.
-
-```ts
-import { ipc } from '@beyond-js/ipc/wrapper';
-```
-
-Alternatively, you can manually import the main or child handler if you prefer to manage them explicitly.
-
-```ts
-import { ipc } from '@beyond-js/ipc/main';
-import { ipc } from '@beyond-js/ipc/child';
-```
-
-⸻
-
-## API
-
-The IPC interface exposes a unified API for both main and child processes.  
-The same methods are available in all contexts; behavior is handled internally based on the process type.
-
-### Register a Child Process (main only)
-
-```ts
-const child = fork('./child.js');
-ipc.register('child-a', child);
-```
-
-⸻
-
-### Handle Actions
-
-```ts
-ipc.handle('get-time', () => new Date().toISOString());
-```
-
-### Execute Actions
-
-```ts
-const time = await ipc.exec('child-a', 'get-time');
-```
-
-### Emit and Subscribe to Events
-
-```ts
-ipc.on('child-a', 'status', data => {
-	console.log('Status from child-a:', data);
-});
-ipc.emit('status', { ready: true });
-```
-
-### Unregister a Child
-
-```ts
-ipc.unregister('child-a');
-```
-
-### Remove Action Handlers
-
-```ts
-ipc.unhandle('get-time');
-```
-
-⸻
-
-License
-
-MIT
+MIT; see [LICENSE](LICENSE).
