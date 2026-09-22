@@ -78,4 +78,8 @@ class ProcessHandlerWrapper implements IProcessHandler {
 	}
 }
 
+/**
+ * The IPC handler of the current process, whichever it is: it loads the main or the child handler through
+ * the Beyond runtime and forwards every call to it
+ */
 export /*bundle*/ const ipc = new ProcessHandlerWrapper();

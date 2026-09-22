@@ -1,3 +1,6 @@
+/**
+ * An error as it travels between processes: its message, its stack and the chain of its causes
+ */
 export /*bundle*/ interface IErrorModel {
 	message: string;
 	stack: string;
@@ -22,6 +25,9 @@ function stringify(value: unknown): string {
 	}
 }
 
+/**
+ * The conversion of errors to and from the form they travel in between processes
+ */
 export /*bundle*/ class SerializableError {
 	/**
 	 * Serialize any error-like value into the wire format, preserving the cause chain.

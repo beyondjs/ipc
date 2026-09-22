@@ -108,6 +108,9 @@ export /*bundle*/ type IResponseMessage = {
 	error?: IErrorModel;
 };
 
+/**
+ * What an IPC handler offers in any process: events, actions, requests and destruction
+ */
 export /*bundle*/ interface IProcessHandler {
 	on: (origin: string, event: string, listener: IListener) => void;
 	off: (origin: string, event: string, listener: IListener) => void;
@@ -126,6 +129,9 @@ export /*bundle*/ interface IProcessHandler {
 	destroy: () => void;
 }
 
+/**
+ * What the IPC handler of the main process adds: the registration of its children
+ */
 export /*bundle*/ interface IMainProcessHandler extends IProcessHandler {
 	/**
 	 * Registers a child process in the main process.

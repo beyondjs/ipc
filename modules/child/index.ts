@@ -61,4 +61,8 @@ export class ChildProcessHandler implements IProcessHandler {
 	}
 }
 
+/**
+ * The IPC handler of a child process: its actions, its requests to the main process and to other children,
+ * and its events
+ */
 export /*bundle*/ const ipc = new ChildProcessHandler();

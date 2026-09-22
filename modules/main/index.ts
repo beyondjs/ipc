@@ -97,4 +97,8 @@ export class MainProcessHandler implements IProcessHandler {
 	}
 }
 
+/**
+ * The IPC handler of the main process: its actions, the registered children, the routes between them and
+ * the events
+ */
 export /*bundle*/ const ipc = new MainProcessHandler();

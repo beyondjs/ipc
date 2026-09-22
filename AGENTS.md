@@ -6,10 +6,13 @@ Keep the contracts the tests establish: a rejected action always answers with a 
 
 - Preserve the selected branch, existing changes and public identifiers. Do not commit, push, reset, deploy or publish without explicit authorization.
 - Use English for first-party documentation, comments and explanatory text. Preserve functional strings and generated/vendor content.
+- Keep repository content portable: never write a developer's checkout, home, temporary-toolchain or agent-runtime path into documentation, instructions, code, fixtures or versioned evidence. Use repository-relative paths, documented variables or neutral placeholders.
 - Keep documentation autonomous: relative links stay inside this repository; external packages are described as contracts with optional references.
 - Preserve the existing module/object programming structure. Internal files are not automatically public modules. Keep bare public imports intact.
 - Distinguish source behavior, known defects, proposed changes and executed validation. Documentation work does not authorize implementation changes, dependency installations or service startup.
 - Validate links, anchors and formatting for documentation edits. Run tests appropriate to actual code changes only.
+- Test every change to a public module in `tests/`, following the Beyond testing conventions in [tests/README.md](tests/README.md#conventions): Node's own test runner, one process per file; imports by the public specifier a consumer uses, never a source file; readiness, events and answers awaited rather than time, with the runner's timeout bounding every wait; whatever a test creates removed with `t.after`, on failure as well; no fixed ports or directories; outcomes asserted, error and recovery paths included. Record the contract each test establishes in [docs/validation.md](docs/validation.md).
+- Keep the `package-lock.json` of each manifest versioned and update it in the same change as its manifest (`npm install --package-lock-only`); `node_modules` stays ignored.
 - Follow the [coding standards](docs/coding-standards.md); they are binding for new and modified code. Source files target 300 lines or fewer and must not exceed 400. Model each responsibility as a class that owns `#private` state and exposes simply named members, composed from collaborating objects. Avoid compound names in methods, properties, variables and parameters by giving the responsibility its own object: `client.register()`, not `registerClient()`. Compound names remain allowed in class definitions. Preserve public contracts, and do not rewrite untouched files only to comply.
 
 Documentation follows [the local documentation standards](docs/AGENTS.md).
