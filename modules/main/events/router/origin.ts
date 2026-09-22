@@ -37,8 +37,13 @@ export default class OriginHandler {
 		}
 	}
 
+	/** The keys this child is subscribed to, for diagnostics */
+	get subscriptions() {
+		return [...this.#listeners];
+	}
+
 	#onmessage = (message: IEventSubscription | IEventRoute) => {
-		if (typeof message !== 'object') return;
+		if (typeof message !== 'object' || message === null) return;
 
 		if (message.type === 'ipc.event.subscribe') {
 			if (!message.origin || !message.event) {
@@ -65,7 +70,7 @@ export default class OriginHandler {
 				return;
 			}
 
-			this.#listeners.add(key);
+			this.#listeners.delete(key);
 		} else if (message.type === 'ipc.event.route') {
 			if (!message.event || typeof message.event !== 'string') {
 				console.error('Invalid parameters on event routing', message);

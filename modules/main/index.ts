@@ -87,8 +87,13 @@ export class MainProcessHandler implements IProcessHandler {
 		}
 	}
 
+	/**
+	 * Releases every registered child and every local subscription. Pending requests to the children are
+	 * rejected; local action handlers are kept.
+	 */
 	destroy() {
 		this.#actions.destroy();
+		this.#events.destroy();
 	}
 }
 

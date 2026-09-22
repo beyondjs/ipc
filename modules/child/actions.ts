@@ -29,39 +29,35 @@ export default class Actions {
 	async #run(message: IRequestMessage): Promise<void> {
 		const { id, action, params } = message;
 
-		const respond = (output: { data?: any; error?: Error }) => {
-			const { data } = output;
-			const error = output.error ? SerializableError.serialize(output.error) : void 0;
-
-			const message: IResponseMessage = { type: 'ipc.response', request: id, data, error };
+		const respond = (data: any) => {
+			const message: IResponseMessage = { type: 'ipc.response', request: id, data };
 			process.send(message);
 		};
 
-		if (!action) {
-			respond({ error: new Error('Property action must be set') });
-			return;
-		}
+		// Whatever was thrown is the error, a falsy value included: a rejected action never answers as a success
+		const fail = (thrown: unknown) => {
+			const error = SerializableError.serialize(thrown);
+			const message: IResponseMessage = { type: 'ipc.response', request: id, error };
+			process.send(message);
+		};
 
-		if (!this.#handlers.has(action)) {
-			respond({ error: new Error(`No handler registered for action "${action}"`) });
-			return;
-		}
+		if (!action) return fail(new Error('Property action must be set'));
+		if (!this.#handlers.has(action)) return fail(new Error(`No handler registered for action "${action}"`));
 
 		const handler = this.#handlers.get(action);
 
 		let data;
 		try {
-			data = await handler(...params);
+			data = await handler(...(Array.isArray(params) ? params : []));
 		} catch (error) {
-			respond({ error });
-			return;
+			return fail(error);
 		}
 
-		respond({ data });
+		respond(data);
 	}
 
 	#onmessage = (message: IRequestMessage) => {
-		if (typeof message !== 'object' || message.type !== 'ipc.request') return;
+		if (typeof message !== 'object' || message === null || message.type !== 'ipc.request') return;
 		if (!message.id) {
 			console.error('An undefined message id received on ipc communication', message);
 			return;

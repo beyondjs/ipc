@@ -55,6 +55,8 @@ export default class Events {
 			);
 		}
 
+		if (origin.includes('|') || event.includes('|')) throw new Error('Origin and event names cannot contain "|"');
+
 		const key = `${origin}|${event}`;
 		if (!this.#listeners.has(key)) {
 			// If no listeners are registered for this event, send a message to the main process to register it
@@ -109,7 +111,7 @@ export default class Events {
 
 	#onmessage = (message: IEventDispatch) => {
 		// Validate the message type and structure
-		if (typeof message !== 'object' || message.type !== 'ipc.event.dispatch') return;
+		if (typeof message !== 'object' || message === null || message.type !== 'ipc.event.dispatch') return;
 		if (!message.origin || !message.event) {
 			console.error('Invalid event message received', message);
 			return;
@@ -136,5 +138,6 @@ export default class Events {
 
 	destroy() {
 		process.removeListener('message', this.#onmessage);
+		this.#listeners.clear();
 	}
 }

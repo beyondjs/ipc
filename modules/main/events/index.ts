@@ -25,12 +25,18 @@ export default class Events {
 		this.#router.unregister(name);
 	}
 
+	/** The subscriptions of a registered child, for diagnostics */
+	subscriptions(name: string) {
+		return this.#router.subscriptions(name);
+	}
+
 	on(origin: string, event: string, listener: IListener) {
 		if (typeof origin !== 'string' || typeof event !== 'string' || typeof listener !== 'function') {
 			throw new Error(
 				'Invalid parameters, parameters `origin` (string), `event` (string), and `listener` (function) must be provided'
 			);
 		}
+		if (origin.includes('|') || event.includes('|')) throw new Error('Origin and event names cannot contain "|"');
 
 		let listeners: Set<IListener>;
 		const key = `${origin}|${event}`;
@@ -64,5 +70,11 @@ export default class Events {
 	// To emit events from the main to the forked children and even to the main process
 	emit(event: string, message: any) {
 		this.#router.emit('main', event, message);
+	}
+
+	/** Releases every child router and every local subscription */
+	destroy() {
+		this.#router.destroy();
+		this.#listeners.clear();
 	}
 }

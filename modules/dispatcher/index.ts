@@ -39,9 +39,18 @@ export /*bundle*/ class Dispatcher {
 
 		this.#process = fork ? fork : process;
 		this.#process.on('message', this.#onmessage);
+
+		// A channel that closes leaves nothing to answer the pending requests: they are rejected here
+		this.#process.on('disconnect', this.#ondisconnect);
+		fork && fork.on('exit', this.#ondisconnect);
 	}
 
-	#pendings = new Map();
+	#pendings: Map<string, PendingPromise<any>> = new Map();
+
+	/** How many requests await an answer */
+	get pending() {
+		return this.#pendings.size;
+	}
 
 	/**
 	 * Execute an IPC action
@@ -58,17 +67,38 @@ export /*bundle*/ class Dispatcher {
 		const rq: IRequestMessage = { type: 'ipc.request', target, id, action, params };
 
 		this.#pendings.set(id, promise);
-		this.#process.send(rq);
+		try {
+			const sent = this.#process.send(rq, (error: Error | null) => error && this.#reject(id, error));
+			if (sent === false) this.#reject(id, new Error(`IPC request "${action}" to "${target}" could not be sent`));
+		} catch (error) {
+			this.#reject(id, error);
+		}
 
 		return promise;
 	}
+
+	#reject(id: string, error: unknown) {
+		const pending = this.#pendings.get(id);
+		if (!pending) return;
+		this.#pendings.delete(id);
+		pending.reject(error instanceof Error ? error : new Error(String(error)));
+	}
+
+	/**
+	 * Rejects every pending request: the process on the other side is gone, or this dispatcher was destroyed
+	 */
+	#settle(reason: string) {
+		for (const id of [...this.#pendings.keys()]) this.#reject(id, new Error(reason));
+	}
+
+	#ondisconnect = () => this.#settle('IPC channel disconnected before the request was answered');
 
 	/**
 	 * Response reception handler
 	 */
 	#onmessage = (message: IResponseMessage) => {
 		// Assure the message is an IPC response
-		if (typeof message !== 'object' || message.type !== 'ipc.response') return;
+		if (typeof message !== 'object' || message === null || message.type !== 'ipc.response') return;
 
 		if (!this.#pendings.has(message.request)) {
 			console.error('Response message id is invalid', message);
@@ -77,6 +107,7 @@ export /*bundle*/ class Dispatcher {
 
 		// Resolve the pending promise with the response data or reject it with an error
 		const pending = this.#pendings.get(message.request);
+		this.#pendings.delete(message.request);
 		if (message.error) {
 			const error = SerializableError.deserialize(message.error);
 			pending.reject(error);
@@ -84,12 +115,15 @@ export /*bundle*/ class Dispatcher {
 			const { data } = message;
 			pending.resolve(data);
 		}
-
-		// Remove the pending promise from the map
-		this.#pendings.delete(message.request);
 	};
 
+	/**
+	 * Stops listening for responses and rejects the requests still pending
+	 */
 	destroy() {
 		this.#process.removeListener('message', this.#onmessage);
+		this.#process.removeListener('disconnect', this.#ondisconnect);
+		(this.#process as ChildProcess).removeListener?.('exit', this.#ondisconnect);
+		this.#settle('IPC dispatcher destroyed before the request was answered');
 	}
 }

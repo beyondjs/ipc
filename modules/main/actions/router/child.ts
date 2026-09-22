@@ -57,46 +57,39 @@ export default class ChildRouter {
 	 * @param message {IRequestMessage} The request message to execute
 	 */
 	async #exec(message: IRequestMessage) {
-		const { id, target, action, params } = message;
+		const { id, target, action } = message;
+		const params = Array.isArray(message.params) ? message.params : [];
 
-		const respond = (output: { data?: any; error?: Error }) => {
-			const { data } = output;
-			const error = output.error ? SerializableError.serialize(output.error) : void 0;
+		const respond = (data: any) => {
+			const response: IResponseMessage = { type: 'ipc.response', request: id, data };
+			this.#fork.send(response);
+		};
 
-			const message: IResponseMessage = { type: 'ipc.response', request: id, data, error };
-			this.#fork.send(message);
+		// Whatever was thrown is the error, a falsy value included: a rejected action never answers as a success
+		const fail = (thrown: unknown) => {
+			const response: IResponseMessage = { type: 'ipc.response', request: id, error: SerializableError.serialize(thrown) };
+			this.#fork.send(response);
 		};
 
 		if (!target || !action) {
 			const text = `Properties 'target' and 'action' must be set on message "${JSON.stringify(message)}"`;
-			const error = new Error(text);
-			respond({ error });
-			return;
+			return fail(new Error(text));
 		}
 
-		// Check if the target is the main process or another child process
-		if (target === 'main') {
-			// Execute the action in the main process
-			try {
-				const data = await this.#main.actions.exec(action, ...params);
-				respond({ data });
-			} catch (error) {
-				respond({ error });
-				return;
-			}
-		} else {
-			// Dispatch the action to another child process
-			try {
-				const data = await this.#main.actions.dispatch(target, action, ...params);
-				respond({ data });
-			} catch (error) {
-				respond({ error });
-			}
+		// Execute the action in the main process, or dispatch it to another child process
+		try {
+			const data =
+				target === 'main'
+					? await this.#main.actions.exec(action, ...params)
+					: await this.#main.actions.dispatch(target, action, ...params);
+			respond(data);
+		} catch (error) {
+			fail(error);
 		}
 	}
 
 	#onmessage = (message: IRequestMessage) => {
-		if (typeof message !== 'object' || message.type !== 'ipc.request') return;
+		if (typeof message !== 'object' || message === null || message.type !== 'ipc.request') return;
 		if (!message.id) {
 			// If no id is provided, we cannot respond to this message, so just log an error
 			console.error('An undefined message id received on ipc communication', message);

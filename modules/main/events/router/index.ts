@@ -47,7 +47,13 @@ export default class Router {
 		this.#origins.delete(name);
 	}
 
+	/** The subscriptions of a registered child, for diagnostics */
+	subscriptions(name: string) {
+		return this.#origins.get(name)?.subscriptions ?? [];
+	}
+
 	destroy() {
 		this.#origins.forEach(origin => origin.destroy());
+		this.#origins.clear();
 	}
 }

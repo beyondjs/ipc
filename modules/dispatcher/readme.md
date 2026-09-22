@@ -1,5 +1,5 @@
 # Dispatcher
 
-Dispatcher(fork?) sends UUID-correlated requests through a ChildProcess or a child process channel. exec(target, action, ...params) waits for a matching response. It has no container parameter, timeout, disconnect rejection or pending-promise cleanup on destroy.
+`new Dispatcher(fork?)` sends UUID-correlated requests through a child process, or through `process` in a child. `exec(target, action, ...params)` answers with the matching response; a send failure, a channel disconnect, the exit of the fork and `destroy()` reject the requests still pending, which `pending` counts. There is no timeout.
 
-Read the [complete behavior and lifecycle contract](../../docs/architecture.md#action-flow-and-wire-contract) before extending or integrating this module. Internal source files are not separate public module identities.
+Read [the contract](../../docs/architecture.md#actions-and-the-wire-contract) before extending or integrating this module.

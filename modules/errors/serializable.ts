@@ -26,18 +26,10 @@ export /*bundle*/ class SerializableError {
 	/**
 	 * Serialize any error-like value into the wire format, preserving the cause chain.
 	 */
-	static serialize(error: unknown): IErrorModel {
-		// Non-Error values become a leaf node with message and empty stack
-		if (!(error instanceof Error)) {
-			let message: string;
-			try {
-				const json = JSON.stringify(error);
-				message = json === void 0 ? String(error) : json;
-			} catch {
-				message = String(error);
-			}
-			return { message, stack: '' };
-		}
+	static serialize(error: unknown, seen: Set<unknown> = new Set()): IErrorModel {
+		// Non-Error values become a leaf node with message and empty stack: a string as it is, anything else
+		// as its JSON when it has one
+		if (!(error instanceof Error)) return { message: stringify(error), stack: '' };
 
 		const message = typeof error.message === 'string' ? error.message : '';
 		const stack = typeof error.stack === 'string' ? error.stack : '';
@@ -45,8 +37,11 @@ export /*bundle*/ class SerializableError {
 
 		const cause = (error as Error).cause;
 		if (cause !== void 0) {
-			// Recursively serialize nested Error causes
-			out.cause = SerializableError.serialize(cause);
+			// Recursively serialize nested causes; a cause already on the chain is a cycle and ends it
+			seen.add(error);
+			out.cause = seen.has(cause)
+				? { message: '[circular cause]', stack: '' }
+				: SerializableError.serialize(cause, seen);
 		}
 
 		return out;

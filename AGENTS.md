@@ -2,6 +2,8 @@
 
 Canonical instructions for this independent repository and its descendants. Read the local README and relevant guides before changing code. This utility is authored with Beyond and must preserve its public package and module boundaries.
 
+Keep the contracts the tests establish: a rejected action always answers with a serialized error, whatever was thrown; a request to a child that exits, disconnects or is unregistered is rejected, and `destroy()` rejects every pending request; `off` releases a subscription in the parent; error cause chains travel and a cycle is cut, never followed. A request timeout is a compatibility decision that does not exist. [Validation](docs/validation.md) maps each contract to its test; run the tests after a change.
+
 - Preserve the selected branch, existing changes and public identifiers. Do not commit, push, reset, deploy or publish without explicit authorization.
 - Use English for first-party documentation, comments and explanatory text. Preserve functional strings and generated/vendor content.
 - Keep documentation autonomous: relative links stay inside this repository; external packages are described as contracts with optional references.
